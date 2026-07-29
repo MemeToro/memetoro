@@ -42,4 +42,4 @@ MemeToro is at the **early foundation and architecture stage**. This repository 
 - Add ERC-8004 agent identity and reputation integration.
 - Complete independent contract security reviews before any production use.
 
-MemeToro's core principle is simple: the agent proposes; transparent contracts execute.
+MemeToro's core principle is simple: the agent proposes; transparent contracts execute
