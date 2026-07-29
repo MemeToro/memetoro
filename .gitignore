@@ -1,0 +1,43 @@
+# Environment files (keep distributable examples)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Dependencies
+node_modules/
+
+# Build and tool output
+build/
+dist/
+out/
+artifacts/
+cache/
+coverage/
+.nyc_output/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Private keys and wallets
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.seed
+
+# Local deployment state
+deployments/local/
+local-deployments/
+*.local-deployment.json

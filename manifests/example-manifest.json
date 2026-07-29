@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "0.1.0",
+  "status": "example",
+  "concept": {
+    "name": "Example Meme",
+    "symbol": "EXAMPLE",
+    "summary": "Non-production example",
+    "marketReasoning": "Illustrative placeholder only; no market analysis has been performed.",
+    "evidenceSources": []
+  },
+  "token": {
+    "totalSupply": "1000000000",
+    "contributorAllocationPercent": 50,
+    "liquidityAllocationPercent": 50,
+    "insiderAllocationPercent": 0
+  },
+  "funding": {
+    "asset": "BNB",
+    "walletCap": "1",
+    "minimumThreshold": "10",
+    "maximumThreshold": "50",
+    "startTime": "TBD",
+    "endTime": "TBD"
+  },
+  "execution": {
+    "launchConditions": [
+      "Funding starts and ends at the published times.",
+      "The minimum funding threshold is met.",
+      "The maximum funding threshold is not exceeded."
+    ],
+    "permissionlessFinalize": true,
+    "permissionlessRefund": true,
+    "backendRequired": false
+  }
+}
