@@ -2,7 +2,7 @@
 
 > **AI finds the meme. Fair contracts launch it.**
 
-MemeToro is an open-source AI meme launch agent. It is designed to identify timely ideas from news, trends, culture, and markets, then publish transparent meme-token proposals for fair, rules-based launches. The initial target network is BNB Smart Chain.
+MemeToro is an open-source AI meme launch agent. It is designed to identify timely ideas from news, trends, culture, and markets, then publish transparent memecoin proposals for fair, rules-based launches. The initial target network is BNB Smart Chain.
 
 Unlike a normal AI meme generator, MemeToro does more than create an image or a name. Each proposal is intended to include the concept, the evidence and reasoning behind it, token and funding parameters, and a machine-readable launch manifest. Public smart contracts—not the AI or a private backend—will enforce the funding and launch rules.
 
