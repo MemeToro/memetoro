@@ -9,4 +9,10 @@ The future MemeToro agent will be an off-chain system that turns public signals 
 - Generating machine-readable launch manifests.
 - Signing and publishing finalized manifests.
 
+## Data sources
+
+Connectors live in [`data-sources/`](./data-sources/). The first connector gathers recent worldwide-news and X trend signals through Perplexity and xAI. Connector output is evidence for analysis, not an automatic endorsement or launch decision.
+
+API credentials must stay in ignored local `.env` files or a secure runtime secret store. Only placeholder `.env.example` files belong in Git.
+
 The agent may propose launch terms, but it must never custody, transfer, or otherwise control contributor funds. Funding, launch execution, claims, and refunds must be handled by public smart contracts under published conditions.

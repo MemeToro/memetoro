@@ -1,5 +1,32 @@
 # Development Log
 
+## 2026-08-05 — Initial Trend Data Sources
+
+### Completed
+
+- Added the first data-source connector under `agent/data-sources/news-x-trends/`.
+- Adapted the initial news and X search prototype into a dependency-free Node.js script.
+- Added structured prompts for multiple ranked candidates, evidence links, meme relevance, and risk notes.
+- Added consistent combined JSON output for worldwide-news and X signals.
+- Added local setup and credential-handling documentation.
+- Added an example environment file without copying private API credentials into the repository.
+
+### Known limitations
+
+- Provider output remains untrusted and requires downstream verification.
+- Ranking quality and resistance to manipulated trends have not been evaluated.
+- The connector depends on external Perplexity and xAI APIs.
+- No scheduler, persistence layer, deduplication, or automated tests yet.
+- No live AI proposal-generation pipeline.
+
+### Next steps
+
+- Define validation and normalization rules for collected signals.
+- Add deduplication across news and X candidates.
+- Design safety and suitability filters before concept generation.
+- Add fixture-based tests without making paid network requests.
+- Connect verified trend signals to a transparent proposal-generation stage.
+
 ## 2026-07-29 — Foundation & Architecture
 
 ### Completed

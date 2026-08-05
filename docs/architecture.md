@@ -2,9 +2,15 @@
 
 MemeToro separates idea generation from launch execution. The off-chain agent creates public proposals, while deterministic smart contracts enforce the published rules.
 
+## Data sources
+
+Dependency-free connectors collect current public signals for the agent. The initial connector queries Perplexity Sonar for broad worldwide-news coverage and xAI X Search for accelerating conversation on X. It returns structured candidates, evidence links, meme-relevance notes, and risk notes.
+
+Connector responses are untrusted and may be incomplete, manipulated, or inaccurate. Later analysis must verify evidence, compare sources, preserve provenance, and reject unsafe or unsuitable topics. API providers and credentials are never part of the trusted launch path.
+
 ## Agent
 
-The agent is the off-chain system that scans news, trends, culture, and market data, then creates meme-token proposals. It produces structured reasoning and launch parameters but never controls contributor funds.
+The agent is the off-chain system that evaluates news, trends, culture, and market data, then creates meme-token proposals. It produces structured reasoning and launch parameters but never controls contributor funds.
 
 ## Manifest
 
@@ -20,10 +26,12 @@ The public interface is the website or application through which users inspect p
 
 ```mermaid
 flowchart LR
-    A[Data sources] --> B[AI agent]
-    B --> C[Launch manifest]
-    C --> D[Funding contract]
-    D --> E[Token and liquidity launch]
+    A[Worldwide news] --> B[Data-source connectors]
+    X[X conversation] --> B
+    B --> C[AI agent]
+    C --> D[Launch manifest]
+    D --> E[Funding contract]
+    E --> F[Token and liquidity launch]
 ```
 
 ## Principles

@@ -16,7 +16,7 @@ Unlike a normal AI meme generator, MemeToro does more than create an image or a 
 
 ## Current status
 
-MemeToro is at the **early foundation and architecture stage**. This repository currently contains project documentation and an example manifest only.
+MemeToro is at the **early foundation and architecture stage**. This repository contains project documentation, an example manifest, and an initial dependency-free connector for worldwide-news and X trend signals. It does not contain a live autonomous agent.
 
 > [!WARNING]
 > The contracts are not implemented, audited, or production-ready. Do not use this repository to collect or manage real funds.
@@ -25,7 +25,8 @@ MemeToro is at the **early foundation and architecture stage**. This repository 
 
 ```text
 .
-├── agent/        # Planned off-chain agent responsibilities
+├── agent/        # Agent design and data-source connectors
+│   └── data-sources/
 ├── contracts/    # Planned on-chain responsibilities
 ├── docs/         # Architecture and development history
 ├── manifests/    # Manifest documentation and examples
@@ -37,9 +38,9 @@ MemeToro is at the **early foundation and architecture stage**. This repository 
 ## Roadmap
 
 - Define and version the launch-manifest schema.
-- Prototype the trend-analysis and proposal pipeline.
+- Expand and evaluate the trend-analysis and proposal pipeline.
 - Design and test fair-launch contracts on BNB Smart Chain testnet.
 - Add ERC-8004 agent identity and reputation integration.
 - Complete independent contract security reviews before any production use.
 
-MemeToro's core principle is simple: the agent proposes; transparent contracts execute
+MemeToro's core principle is simple: the agent proposes; transparent contracts execute.
