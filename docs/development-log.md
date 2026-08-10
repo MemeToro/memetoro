@@ -1,5 +1,37 @@
 # Development Log
 
+## 2026-08-10 — Agent Pipeline Dry Run
+
+### Completed
+
+- Added a dependency-free pipeline that normalizes news and X trend signals.
+- Added an optional xAI concept-generation step with structured output.
+- Kept token and funding parameters in explicit code policy instead of model output.
+- Added evidence allow-listing and launch-manifest validation.
+- Added standard-input piping between collection and generation.
+- Consolidated credentials into one repository-root `.env` and `.env.example` instead of per-directory copies.
+- Raised the provider request timeout to 180 seconds after a live X Search request exceeded 60 seconds.
+- Completed live end-to-end provider runs that produced the validated draft concepts **Prompt Pace (PPACE)** and **Cat Day Overlords (CATDAY)**.
+- Replaced the initial synthetic fixtures with a verbatim frozen capture of the real run, including its public news and X post URLs.
+- Confirmed the credential-free dry run reproduces the live concept and that the model skipped war, disaster, and polarized signals in favor of a low-harm one.
+
+### Known limitations
+
+- No hourly scheduler, retries, persistence, signing, or publication.
+- No dedicated market-data connector.
+- Safety checks are prompt- and rule-based, not a complete moderation system.
+- The manifest format does not yet have a finalized JSON Schema.
+- Live provider behavior and concept quality do not yet have automated evaluation.
+- Fixture content is frozen, unverified, and will not reflect current events.
+
+### Next steps
+
+- Add fixture-based negative tests for malformed and unsafe inputs.
+- Define a formal launch-manifest JSON Schema.
+- Add a market-data connector and cross-source deduplication.
+- Add an explicit no-proposal outcome for unsuitable trend windows.
+- Schedule dry-run generation hourly only after quality and safety evaluation.
+
 ## 2026-08-05 — Initial Trend Data Sources
 
 ### Completed

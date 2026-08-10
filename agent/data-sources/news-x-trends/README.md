@@ -17,8 +17,8 @@ No npm packages are required.
 
 ## Setup
 
-1. Copy `.env.example` to `.env` in this directory.
-2. Add your own API keys to `.env`.
+1. Copy the repository-root `.env.example` to `.env` at the repository root.
+2. Add your own API keys to that file.
 3. Run:
 
    ```sh

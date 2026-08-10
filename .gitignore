@@ -1,8 +1,7 @@
-# Environment files (keep distributable examples)
+# Environment files (keep the distributable example)
 .env
 .env.*
 !.env.example
-!.env.*.example
 
 # Dependencies
 node_modules/
@@ -16,6 +15,7 @@ cache/
 coverage/
 .nyc_output/
 agent/data-sources/**/output/
+agent/pipeline/output/
 
 # Editors
 .idea/

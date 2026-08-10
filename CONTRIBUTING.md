@@ -12,4 +12,4 @@ Never commit private keys, seed phrases, API secrets, populated environment file
 
 ## Data-source changes
 
-Keep connectors under `agent/data-sources/`, document their provider and runtime requirements, and avoid unnecessary packages. Tests should use sanitized fixtures by default rather than paid or credentialed live requests. Commit `.env.example` placeholders only—never a populated `.env` or generated local output.
+Keep connectors under `agent/data-sources/`, document their provider and runtime requirements, and avoid unnecessary packages. Tests should use sanitized fixtures by default rather than paid or credentialed live requests. Credentials belong in the single repository-root `.env`; add any new variable to the root `.env.example` instead of creating a per-directory example. Never commit a populated `.env` or generated local output.

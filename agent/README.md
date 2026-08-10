@@ -13,6 +13,16 @@ The future MemeToro agent will be an off-chain system that turns public signals 
 
 Connectors live in [`data-sources/`](./data-sources/). The first connector gathers recent worldwide-news and X trend signals through Perplexity and xAI. Connector output is evidence for analysis, not an automatic endorsement or launch decision.
 
-API credentials must stay in ignored local `.env` files or a secure runtime secret store. Only placeholder `.env.example` files belong in Git.
+## Pipeline MVP
+
+The fixture-backed [`pipeline/`](./pipeline/) MVP normalizes collected signals, generates one concept, applies fixed draft launch parameters, and validates the resulting manifest. Its dry-run mode works without credentials or network requests:
+
+```sh
+node pipeline/run.mjs --dry-run
+```
+
+Live concept generation is optional. Hourly scheduling, a dedicated market feed, publication, and signing remain future work.
+
+Every script reads credentials from a single `.env` at the repository root, described by `.env.example`. Keep credentials in that ignored file or a secure runtime secret store; only the placeholder example belongs in Git.
 
 The agent may propose launch terms, but it must never custody, transfer, or otherwise control contributor funds. Funding, launch execution, claims, and refunds must be handled by public smart contracts under published conditions.

@@ -10,7 +10,7 @@ Connector responses are untrusted and may be incomplete, manipulated, or inaccur
 
 ## Agent
 
-The agent is the off-chain system that evaluates news, trends, culture, and market data, then creates meme-token proposals. It produces structured reasoning and launch parameters but never controls contributor funds.
+The agent is the off-chain system that evaluates news, trends, culture, and market data, then creates meme-token proposals. The pipeline normalizes source records, asks the model for the creative concept and evidence-based rationale, and applies launch parameters from explicit policy. The model does not choose custody or execution rules and never controls contributor funds.
 
 ## Manifest
 
@@ -28,8 +28,11 @@ The public interface is the website or application through which users inspect p
 flowchart LR
     A[Worldwide news] --> B[Data-source connectors]
     X[X conversation] --> B
-    B --> C[AI agent]
-    C --> D[Launch manifest]
+    M[Future market feed] --> B
+    B --> C[Signal normalization]
+    C --> G[AI concept generation]
+    G --> P[Policy and validation]
+    P --> D[Launch manifest]
     D --> E[Funding contract]
     E --> F[Token and liquidity launch]
 ```

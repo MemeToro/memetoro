@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { loadEnvFile } from "node:process";
 import { fileURLToPath } from "node:url";
 
-const envPath = fileURLToPath(new URL(".env", import.meta.url));
+const envPath = fileURLToPath(new URL("../../../.env", import.meta.url));
 if (existsSync(envPath)) {
   loadEnvFile(envPath);
 }
@@ -12,6 +12,7 @@ const XAI_API_KEY = requireEnvironmentVariable("XAI_API_KEY");
 const PERPLEXITY_MODEL = process.env.PERPLEXITY_MODEL || "sonar";
 const XAI_MODEL = process.env.XAI_MODEL || "grok-4.5";
 const WINDOW_HOURS = 24;
+const REQUEST_TIMEOUT_MS = 180_000;
 
 const newsCandidateSchema = {
   type: "object",
@@ -112,7 +113,7 @@ const [newsResponse, xResponse] = await Promise.all([
         },
       },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   }),
   requestJson("xAI", "https://api.x.ai/v1/responses", {
     method: "POST",
@@ -155,7 +156,7 @@ const [newsResponse, xResponse] = await Promise.all([
         },
       },
     }),
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   }),
 ]);
 

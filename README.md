@@ -16,7 +16,7 @@ Unlike a normal AI meme generator, MemeToro does more than create an image or a 
 
 ## Current status
 
-MemeToro is at the **early foundation and architecture stage**. This repository contains project documentation, an example manifest, and an initial dependency-free connector for worldwide-news and X trend signals. It does not contain a live autonomous agent.
+MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, an initial dependency-free connector for worldwide-news and X trend signals, and a fixture-backed pipeline that produces one validated draft manifest. It does not contain an hourly autonomous service.
 
 > [!WARNING]
 > The contracts are not implemented, audited, or production-ready. Do not use this repository to collect or manage real funds.
@@ -25,8 +25,9 @@ MemeToro is at the **early foundation and architecture stage**. This repository 
 
 ```text
 .
-├── agent/        # Agent design and data-source connectors
-│   └── data-sources/
+├── agent/        # Agent design, data sources, and pipeline MVP
+│   ├── data-sources/
+│   └── pipeline/
 ├── contracts/    # Planned on-chain responsibilities
 ├── docs/         # Architecture and development history
 ├── manifests/    # Manifest documentation and examples
@@ -38,7 +39,7 @@ MemeToro is at the **early foundation and architecture stage**. This repository 
 ## Roadmap
 
 - Define and version the launch-manifest schema.
-- Expand and evaluate the trend-analysis and proposal pipeline.
+- Add market signals, safety evaluation, and hourly scheduling to the agent.
 - Design and test fair-launch contracts on BNB Smart Chain testnet.
 - Add ERC-8004 agent identity and reputation integration.
 - Complete independent contract security reviews before any production use.

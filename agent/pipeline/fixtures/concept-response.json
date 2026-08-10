@@ -1,0 +1,15 @@
+{
+  "name": "Cat Day Overlords",
+  "symbol": "CATDAY",
+  "summary": "Wholesome remixable meme where cats declare International Cat Day as their annual takeover, posting regal portraits and demanding treats while users share adoption appeals and cute crossover edits.",
+  "reasoning": "Signal x-3 shows sustained high-volume cat photo and video sharing tied to the annual observance, with strong wholesome memePotential from portraits, fun facts, and light fandom crossovers that remain visible and easily remixable.",
+  "riskAssessment": "Low risk overall; content stays positive and animal-focused with only minor notes about avoiding any suffering imagery, no tragedy, hate, or polarization involved.",
+  "selectedSignalIds": [
+    "x-3"
+  ],
+  "evidenceSources": [
+    "https://x.com/IslamicSH_/status/2086162680780615748",
+    "https://x.com/CrashsLanding/status/2086120352183160864",
+    "https://x.com/StygianSis/status/2086810977035534784"
+  ]
+}
