@@ -1,12 +1,41 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
+  "kind": "memetoro.launch-manifest",
   "status": "example",
   "concept": {
     "name": "Example Meme",
     "symbol": "EXAMPLE",
     "summary": "Non-production example",
     "marketReasoning": "Illustrative placeholder only; no market analysis has been performed.",
-    "evidenceSources": []
+    "riskAssessment": "Illustrative placeholder only; no risk assessment has been performed."
+  },
+  "evidence": [
+    {
+      "url": "https://example.com/2026/08/10/example-article-slug",
+      "linkType": "permalink",
+      "title": "Example article",
+      "publishedDate": "2026-08-10",
+      "account": null,
+      "note": null
+    },
+    {
+      "url": "https://x.example/example-account/status/1000000000000000001",
+      "linkType": "permalink",
+      "title": null,
+      "publishedDate": null,
+      "account": "@example-account",
+      "note": "Example description of the cited post."
+    }
+  ],
+  "sourceFacts": {
+    "evidenceCount": 2,
+    "distinctDomainCount": 2,
+    "distinctDomains": ["example.com", "x.example"],
+    "permalinkCount": 2,
+    "sectionFrontCount": 0,
+    "datedEvidenceCount": 1,
+    "oldestSourceDate": "2026-08-10",
+    "newestSourceDate": "2026-08-10"
   },
   "token": {
     "totalSupply": "1000000000",
@@ -19,8 +48,8 @@
     "walletCap": "1",
     "minimumThreshold": "10",
     "maximumThreshold": "50",
-    "startTime": "TBD",
-    "endTime": "TBD"
+    "startTime": "2026-08-10T13:00:00.000Z",
+    "endTime": "2026-08-11T13:00:00.000Z"
   },
   "execution": {
     "launchConditions": [
@@ -31,5 +60,68 @@
     "permissionlessFinalize": true,
     "permissionlessRefund": true,
     "backendRequired": false
+  },
+  "selection": {
+    "consideredCount": 3,
+    "selectedSignalIds": ["x-1"],
+    "candidates": [
+      {
+        "id": "news-1",
+        "sourceType": "worldwide-news",
+        "topic": "Example rejected news topic",
+        "riskNotes": "Illustrative note explaining why this candidate was unsuitable.",
+        "sourceFacts": {
+          "evidenceCount": 2,
+          "distinctDomainCount": 1,
+          "distinctDomains": ["example.com"],
+          "permalinkCount": 1,
+          "sectionFrontCount": 1,
+          "datedEvidenceCount": 2,
+          "oldestSourceDate": "2026-08-09",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "news-2",
+        "sourceType": "worldwide-news",
+        "topic": "Second example rejected news topic",
+        "riskNotes": "Illustrative note explaining why this candidate was unsuitable.",
+        "sourceFacts": {
+          "evidenceCount": 1,
+          "distinctDomainCount": 1,
+          "distinctDomains": ["example.com"],
+          "permalinkCount": 0,
+          "sectionFrontCount": 1,
+          "datedEvidenceCount": 1,
+          "oldestSourceDate": "2026-08-10",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "x-1",
+        "sourceType": "x-conversation",
+        "topic": "Example selected conversation topic",
+        "riskNotes": "Illustrative note describing the residual risk of the selected candidate.",
+        "sourceFacts": {
+          "evidenceCount": 1,
+          "distinctDomainCount": 1,
+          "distinctDomains": ["x.example"],
+          "permalinkCount": 1,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": true
+      }
+    ]
+  },
+  "provenance": {
+    "generatedAt": "2026-08-10T12:00:00.000Z",
+    "signalsGeneratedAt": "2026-08-10T11:55:00.000Z",
+    "windowHours": 24,
+    "generator": "example"
   }
 }

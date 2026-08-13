@@ -1,5 +1,40 @@
 # Development Log
 
+## 2026-08-13 — Transparency and Refusal
+
+### Completed
+
+- Split the pipeline into testable modules for signals, concept, manifest, and rendering.
+- Carried evidence context through to the manifest: link titles, publication dates, X accounts, per-post descriptions, and news key points that were previously discarded.
+- Added countable source facts per candidate covering link counts, distinct domains, permalinks against publisher section fronts, and dated-link counts.
+- Published the full candidate shortlist with each candidate's stated risks and whether it was selected.
+- Added a refusal path that emits a `memetoro.no-proposal` record instead of forcing a concept, and confirmed with a live call that the model declines when every candidate is high-harm.
+- Added a deterministic manifest-to-markdown renderer so the readable view cannot drift from the enforced terms.
+- Added 22 offline tests, including fabricated-evidence, cross-signal evidence, prompt-injection, hidden-candidate, and insider-allocation cases.
+- Added `--save-concept` to archive the raw model response from a live run.
+- Bumped the manifest to schema version 0.2.0 and updated the example manifest to match.
+
+### Decisions
+
+- No composite signal-strength score. The collection sources expose no volume or engagement data, so a rating would be invented rather than measured.
+- Human-readable output is rendered from the manifest rather than stored in it, to avoid a second source of truth for launch terms.
+- Rejected candidates are published with their risk notes, which means sensitive topics appear in the record by design.
+
+### Known limitations
+
+- No symbol or name collision checking against existing tokens.
+- No evidence liveness checking; several collected news links are publisher section fronts that prove nothing.
+- No visual identity fields or asset generation.
+- Refusal quality rests on prompt instructions rather than an independent safety classifier.
+- Still no scheduler, persistence, publication, signing, or formal JSON Schema.
+
+### Next steps
+
+- Add collision search across token indexers, published as disclosure rather than a uniqueness guarantee.
+- Add evidence liveness checks that distinguish an unreachable link from a deleted one.
+- Prefer permalinks over section fronts when selecting evidence.
+- Add a structured visual identity field before considering asset generation.
+
 ## 2026-08-10 — Agent Pipeline Dry Run
 
 ### Completed

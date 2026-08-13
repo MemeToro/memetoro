@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "0.1.0",
+  "kind": "memetoro.trend-signals",
+  "generatedAt": "2026-08-10T13:56:04.850Z",
+  "windowHours": 24,
+  "sources": {
+    "worldwideNews": {
+      "provider": "Perplexity",
+      "model": "sonar",
+      "candidates": [
+        {
+          "evidenceUrls": [
+            "https://www.reuters.com/world/",
+            "https://www.aljazeera.com/",
+            "https://www.cnn.com/2026/08/09/world/video/netanyahu-rejects-trump-gaza-peace-plan-digvid-hnk",
+            "https://www.reuters.com/world/world/"
+          ],
+          "keyPoints": [
+            "Netanyahu publicly rejected Trump’s Gaza peace framework, saying Israel will not withdraw until Hamas disarms.",
+            "Reuters and Al Jazeera both framed the dispute as a fresh escalation in U.S.-Israel tensions over the postwar Gaza plan.",
+            "Coverage also links the story to Hamas’s acceptance of the framework, making the rejection a clear new turn in the negotiations."
+          ],
+          "memePotential": "Strong visual contrast between a 'peace plan' headline and immediate rejection; repeated phrases like 'unacceptable,' 'disarm,' and '15-point plan' are highly remixable.",
+          "riskNotes": "High sensitivity because the topic involves an active war, civilian suffering, and political propaganda; misinformation risk is substantial and claims from involved parties may be strategic rather than verifiable.",
+          "summary": "Israel’s rejection of Trump’s Gaza proposal became one of the day’s biggest global stories because it abruptly shifted the peace-track narrative from tentative progress to renewed deadlock.",
+          "topic": "Israel rejects Trump’s Gaza peace plan",
+          "whyTrending": "It is fresh, geopolitically important, and covered by multiple major outlets, with a direct change in the negotiating position during the last 24 hours."
+        },
+        {
+          "evidenceUrls": [
+            "https://www.reuters.com/world/",
+            "https://www.cnn.com/world",
+            "https://www.abc.net.au/news/world",
+            "https://www.nbcnews.com/latest-stories"
+          ],
+          "keyPoints": [
+            "Typhoon Dolphin made landfall and triggered mass evacuations, flight cancellations, and torrential rain across East Asia.",
+            "CNN highlighted a missing child in Zhejiang, adding an immediate human-impact angle to the storm coverage.",
+            "Reuters also reported over a million evacuations and storm-related disruption, showing broad regional impact."
+          ],
+          "memePotential": "Strong weather-map imagery, evacuation screenshots, and dramatic 'storm tracker' language are easy meme material; the name 'Dolphin' also invites irony against destructive scenes.",
+          "riskNotes": "Includes disaster and possible casualty coverage, so imagery can be traumatic; unverified rescue or death claims should be treated cautiously while the storm situation is still evolving.",
+          "summary": "Typhoon Dolphin surged into the top tier of worldwide news because it combined extreme weather, mass displacement, and live human-risk reporting across several countries.",
+          "topic": "Typhoon Dolphin disrupts China and the region",
+          "whyTrending": "The story is broad, fast-moving, and visually obvious, with credible outlets reporting both immediate danger and large-scale evacuations within the last day."
+        },
+        {
+          "evidenceUrls": [
+            "https://www.reuters.com/world/",
+            "https://www.nbcnews.com/latest-stories",
+            "https://www.independent.co.uk/news/world",
+            "https://www.aljazeera.com/"
+          ],
+          "keyPoints": [
+            "Reuters reported that a Ukrainian drone strike killed people in Nizhnekamsk deep inside Russian territory, while other outlets described lethal overnight exchanges.",
+            "NBC News and the Independent both highlighted continued frontline and rear-area violence, showing the conflict remained active and deadly.",
+            "The story’s importance increased because it combines battlefield escalation with attacks on infrastructure and civilian areas."
+          ],
+          "memePotential": "Drone-attack footage, exploding refinery imagery, and map graphics with long-distance strike arrows are highly shareable; the sheer reach of the strike gives it a striking visual narrative.",
+          "riskNotes": "Very high tragedy and propaganda risk; casualty counts are often revised, attribution can be contested, and graphic imagery may be harmful or misleading if circulated without context.",
+          "summary": "Russia-Ukraine fighting stayed near the top of the global agenda because the latest strikes were lethal, geographically deep, and widely covered across mainstream outlets.",
+          "topic": "Ukraine-Russia strikes deepen and spread",
+          "whyTrending": "The combination of fresh casualties, cross-border reach, and ongoing war escalation kept this story prominent in the last 24 hours."
+        },
+        {
+          "evidenceUrls": [
+            "https://www.reuters.com/world/",
+            "https://www.nbcnews.com/latest-stories",
+            "https://www.abc.net.au/news/world",
+            "https://www.abcnews.com/International"
+          ],
+          "keyPoints": [
+            "Reuters reported Chinese authorities evacuating more than a million people as Typhoon Dolphin reached landfall.",
+            "NBC News highlighted flooding in Shanghai and described the storm as China’s strongest of the year.",
+            "ABC Australia also reported cancellations and evacuations, confirming wide regional operational disruption."
+          ],
+          "memePotential": "Flooded streets, wind-blown umbrellas, evacuation queues, and extreme-weather radar graphics are classic meme visuals; the contrast between ordinary urban life and storm chaos is especially shareable.",
+          "riskNotes": "Disaster coverage carries strong human-cost sensitivity, and early reports can overstate or understate impacts before authorities confirm them.",
+          "summary": "Typhoon Dolphin’s coverage rose because it created a large, visible, and widely disruptive weather event with confirmed evacuations and transport disruption.",
+          "topic": "Typhoon Dolphin causes mass evacuation and flooding in China",
+          "whyTrending": "Multiple major outlets reported near-real-time disruption, making it one of the clearest worldwide news events in the last day."
+        }
+      ],
+      "searchResults": [
+        {
+          "title": "Breaking News, World News and Video from Al Jazeera",
+          "url": "https://www.aljazeera.com/",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "World",
+          "url": "https://www.reuters.com/world/",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "World | CNN",
+          "url": "https://www.cnn.com/world",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "Netanyahu rejects Trump's Gaza peace plan - CNN",
+          "url": "https://www.cnn.com/2026/08/09/world/video/netanyahu-rejects-trump-gaza-peace-plan-digvid-hnk",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "Latest Stories",
+          "url": "https://www.nbcnews.com/latest-stories",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "World News",
+          "url": "https://www.abc.net.au/news/world",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "International News | Latest World News, Videos & Photos - ABC News",
+          "url": "https://abcnews.com/International",
+          "date": "2026-08-10"
+        },
+        {
+          "title": "World",
+          "url": "https://www.independent.co.uk/news/world",
+          "date": "2026-08-10"
+        }
+      ]
+    },
+    "xTrends": {
+      "provider": "xAI",
+      "model": "grok-4.5",
+      "candidates": [
+        {
+          "topic": "WNBA on-court drama and player accusations",
+          "hashtagOrPhrase": "WNBA OR DiJonai Carrington OR Sophie Cunningham",
+          "whySpiking": "Recent game foul and postgame 'white privilege' accusations involving players like DiJonai Carrington and Sophie Cunningham (tied to Caitlin Clark narratives) fueled fresh debate in the last 24-48 hours about sport vs. soap opera, suspensions, and coaching, with ongoing replies in latest hours.",
+          "memePotential": "Moderate-to-high; drama invites reaction clips, privilege memes, and basketball vs. culture-war overlays.",
+          "riskNotes": "High sensitivity around race, gender, and 'trans men in women's sports' claims; misinformation on incident details; potential for harassment or polarized manipulation of sports discourse.",
+          "representativePosts": [
+            {
+              "account": "@NCouz",
+              "summary": "Discusses exhausting WNBA drama over foul and privilege accusations overshadowing basketball.",
+              "url": "https://x.com/NCouz/status/2086495563344748990"
+            },
+            {
+              "account": "@MikeRGlenn",
+              "summary": "Criticizes Indiana Fever coach for defending the foul on Sophie Cunningham.",
+              "url": "https://x.com/MikeRGlenn/status/2086813630272553213"
+            }
+          ]
+        },
+        {
+          "topic": "Hasan Piker as top political talk figure",
+          "hashtagOrPhrase": "Hasan Piker OR @hasanthehun",
+          "whySpiking": "Questions and debates about whether Hasan Piker is currently the most-discussed political figure on X gained traction in the last day, with critical replies and image posts continuing into recent hours amid broader left-right sniping.",
+          "memePotential": "Moderate; 'shrieking' clips and cult-leader jabs lend to ironic or hostile reaction memes.",
+          "riskNotes": "Elevated misinformation and personal attack risks; high sensitivity/polarization around streamer politics; potential for coordinated harassment or doxxing-adjacent content.",
+          "representativePosts": [
+            {
+              "account": "@ExtraFlippant",
+              "summary": "Asks repeatedly if Hasan Piker is the most talked-about political figure on X right now.",
+              "url": "https://x.com/ExtraFlippant/status/2086543079369044032"
+            },
+            {
+              "account": "@DontPetTheSnake",
+              "summary": "Shares critical image post mocking Hasan's style and influence.",
+              "url": "https://x.com/DontPetTheSnake/status/2086813611926655457"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

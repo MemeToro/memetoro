@@ -15,13 +15,15 @@ Connectors live in [`data-sources/`](./data-sources/). The first connector gathe
 
 ## Pipeline MVP
 
-The fixture-backed [`pipeline/`](./pipeline/) MVP normalizes collected signals, generates one concept, applies fixed draft launch parameters, and validates the resulting manifest. Its dry-run mode works without credentials or network requests:
+The fixture-backed [`pipeline/`](./pipeline/) MVP normalizes collected signals, generates one concept or declines, applies fixed draft launch parameters, publishes the candidate shortlist, and validates the resulting document. Its dry-run mode works without credentials or network requests:
 
 ```sh
 node pipeline/run.mjs --dry-run
+node pipeline/run.mjs --dry-run --format markdown
+node --test pipeline/test/pipeline.test.mjs
 ```
 
-Live concept generation is optional. Hourly scheduling, a dedicated market feed, publication, and signing remain future work.
+Live concept generation is optional. Hourly scheduling, a dedicated market feed, collision checking, publication, and signing remain future work.
 
 Every script reads credentials from a single `.env` at the repository root, described by `.env.example`. Keep credentials in that ignored file or a secure runtime secret store; only the placeholder example belongs in Git.
 
