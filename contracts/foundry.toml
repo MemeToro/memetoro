@@ -1,0 +1,33 @@
+[profile.default]
+src = "src"
+test = "test"
+libs = ["lib"]
+solc = "0.8.28"
+# Conservative target: this contract needs no Cancun-only opcodes, so the
+# bytecode stays deployable on older BNB Smart Chain client versions.
+evm_version = "shanghai"
+optimizer = true
+optimizer_runs = 200
+bytecode_hash = "none"
+
+[lint]
+# Test files use deliberate test-only idioms (literal address casts, cheatcodes
+# in loops) that trip informational lints without saying anything about the
+# contracts that would actually ship.
+ignore = ["test/*.sol", "test/**/*.sol"]
+exclude_lints = [
+    # Public immutables are read by off-chain consumers through their generated
+    # getters, so they keep camelCase ABI names rather than SCREAMING_SNAKE_CASE.
+    "screaming-snake-case-immutable",
+    # Funding rounds are defined in wall-clock time by design. Seconds of
+    # validator drift are immaterial to a window measured in hours.
+    "block-timestamp",
+]
+
+[fuzz]
+runs = 512
+
+[invariant]
+runs = 256
+depth = 64
+fail_on_revert = false

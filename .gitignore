@@ -16,6 +16,7 @@ coverage/
 .nyc_output/
 agent/data-sources/**/output/
 agent/pipeline/output/
+broadcast/
 
 # Editors
 .idea/

@@ -16,10 +16,10 @@ Unlike a normal AI meme generator, MemeToro does more than create an image or a 
 
 ## Current status
 
-MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, and a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable. It does not contain an hourly autonomous service.
+MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable, and a first draft of the fair-launch funding escrow with its test suite. It does not contain an hourly autonomous service, a deployed contract, or a working end-to-end launch.
 
 > [!WARNING]
-> The contracts are not implemented, audited, or production-ready. Do not use this repository to collect or manage real funds.
+> The contracts are an unaudited draft, are not deployed on any network, and have had no security review. Do not use this repository to collect or manage real funds.
 
 ## Repository structure
 
@@ -28,7 +28,7 @@ MemeToro is at the **early MVP and architecture stage**. This repository contain
 ├── agent/        # Agent design, data sources, and pipeline MVP
 │   ├── data-sources/
 │   └── pipeline/
-├── contracts/    # Planned on-chain responsibilities
+├── contracts/    # Fair-launch escrow draft and its tests
 ├── docs/         # Architecture and development history
 ├── manifests/    # Manifest documentation and examples
 ├── CONTRIBUTING.md
@@ -38,10 +38,12 @@ MemeToro is at the **early MVP and architecture stage**. This repository contain
 
 ## Roadmap
 
+- Define a canonical manifest serialization and hash, so a round's on-chain commitment can be checked against its published manifest.
+- Implement token creation and liquidity provision behind the escrow's executor interface.
 - Define a formal schema for the launch manifest.
 - Add token symbol collision checking and evidence liveness verification.
 - Add market signals, visual identity, and hourly scheduling to the agent.
-- Design and test fair-launch contracts on BNB Smart Chain testnet.
+- Deploy and test the launch contracts on BNB Smart Chain testnet.
 - Add ERC-8004 agent identity and reputation integration.
 - Complete independent contract security reviews before any production use.
 

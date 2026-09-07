@@ -1,5 +1,42 @@
 # Development Log
 
+## 2026-09-07 — Fair-Launch Escrow
+
+### Completed
+
+- Added a Foundry project under `contracts/`, pinning `forge-std` v1.16.2 as a submodule and targeting Solidity 0.8.28.
+- Implemented `FairLaunchEscrow`, the funding escrow for a single launch round: contributions, per-wallet cap, minimum and maximum thresholds, funding window, permissionless finalization, pro-rata claims, and refunds.
+- Made the fairness claims structural: all terms are immutables with no owner, admin, or upgrade path; native value can exit only as a refund to its contributor or as the whole raise to the launch executor; and the constructor rejects any allocation split that does not assign the entire supply, so an insider share cannot be represented.
+- Committed each round to a `manifestHash` at construction, so on-chain terms can be checked against the published document.
+- Added a refund path that opens when a round closes below its minimum and again when the finalization grace period expires, with finalization barred from the moment refunds open so the two can never overlap.
+- Put token creation and liquidity behind `ILaunchExecutor`, keeping the escrow testable without a DEX.
+- Added 26 unit and fuzz tests plus 8 invariants over randomized action sequences, covering caps against split contributions, hard-cap rejection, the finalization deadline, misbehaving executors, refund recipients that reject value, and tokens whose transfers fail.
+
+### Decisions
+
+- Reaching the hard cap reverts rather than partially filling the last contribution. Partial fills avoid a failed transaction at the boundary but make the accounting harder to reason about, which is the wrong trade for a first draft.
+- No `receive` fallback. A bare transfer reverts instead of being silently credited or lost.
+- Refunds use a raw call rather than `transfer`, so contract contributors are not broken by the gas stipend.
+- Public immutables keep camelCase getter names against Foundry's style lint, because those names are the ABI that off-chain consumers read.
+
+### Known limitations
+
+- The launch executor is a stub. Token deployment, liquidity provision, and LP handling do not exist.
+- The escrow accepts a manifest hash but the agent does not compute one, so the two halves of the project are still unconnected.
+- No factory, deployment scripts, or testnet deployment.
+- Unaudited, with no security review of any kind.
+
+### Notes
+
+The first invariant run passed all eight properties, which turned out to mean very little. A throwaway probe asserting the opposite of each interesting state showed the handler never finalized a round, never paid a claim, and never filled the hard cap: the fixture's thresholds were unreachable for its actor set, and its time steps jumped past the funding window before contributions could accumulate. Four invariants were describing an escrow that never left its initial state. Retuning the window, thresholds, and step size, and adding an action that contributes an actor's full remaining allowance, brought all four states into reach. `test_fixtureCanReachHardCapLaunchAndClaims` and `test_fixtureCanReachRefunds` now guard that, so a future parameter change fails loudly rather than quietly hollowing out the suite.
+
+### Next steps
+
+- Define a canonical manifest serialization and hash so the commitment can be reproduced from a published manifest.
+- Implement the launch executor against a DEX router, with liquidity locking.
+- Add a factory and deployment scripts, then deploy to BNB Smart Chain testnet.
+- Add continuous integration that runs the agent tests and the contract suite.
+
 ## 2026-08-13 — Transparency and Refusal
 
 ### Completed
