@@ -17,9 +17,12 @@ import {ILaunchExecutor} from "./interfaces/ILaunchExecutor.sol";
 /// - `manifestHash` commits to the published manifest. The escrow never
 ///   interprets it; it exists so anyone can check that the terms enforced here
 ///   match the document that was published.
-/// - Native value leaves this contract through exactly two paths: a refund to
-///   the address that contributed it, or the launch executor at finalization.
+/// - Native value leaves this contract only to the address that contributed it,
+///   as a withdrawal or a refund, or to the launch executor at finalization.
 ///   No path pays a developer, deployer, or treasury.
+/// - Contributors may withdraw freely until the published exit deadline, after
+///   which the round locks. Finalization is barred until that deadline passes,
+///   so the exit window is honoured even if the hard cap fills immediately.
 /// - Token allocation is split between contributors and liquidity only.
 ///   Rounding dust is added to liquidity, never to an individual.
 /// - Finalization, refunds, and claims are callable by anyone with no backend
@@ -43,6 +46,8 @@ contract FairLaunchEscrow {
     uint64 public immutable startTime;
     /// @notice First moment contributions are rejected.
     uint64 public immutable endTime;
+    /// @notice First moment withdrawals are rejected and the round locks.
+    uint64 public immutable exitDeadline;
     /// @notice Moment after which finalization is barred and refunds always open.
     uint64 public immutable finalizeDeadline;
     /// @notice Total token supply the executor must create.
@@ -54,11 +59,13 @@ contract FairLaunchEscrow {
     /// @notice Contract that creates the token and seeds liquidity.
     ILaunchExecutor public immutable launchExecutor;
 
-    /// @notice Outstanding contribution per address, reduced only by refunds.
+    /// @notice Outstanding contribution per address, reduced by withdrawals and refunds.
     mapping(address => uint256) public contributionOf;
     /// @notice Sum of all outstanding contributions.
     uint256 public totalContributed;
-    /// @notice Cumulative native value returned to contributors.
+    /// @notice Cumulative native value taken back during the exit window.
+    uint256 public totalWithdrawn;
+    /// @notice Cumulative native value returned after a round failed to launch.
     uint256 public totalRefunded;
     /// @notice Cumulative tokens distributed through claims.
     uint256 public totalClaimed;
@@ -73,11 +80,13 @@ contract FairLaunchEscrow {
 
     event Contributed(address indexed contributor, uint256 amount, uint256 newTotalContributed);
     event Finalized(address indexed caller, uint256 raised, address token, uint256 contributorAllocation);
+    event Withdrawn(address indexed contributor, uint256 amount, uint256 newTotalContributed);
     event Refunded(address indexed contributor, uint256 amount);
     event Claimed(address indexed contributor, uint256 amount);
 
     error InvalidManifestHash();
     error InvalidWindow();
+    error InvalidExitWindow();
     error InvalidThresholds();
     error InvalidWalletCap();
     error InvalidAllocation();
@@ -91,6 +100,9 @@ contract FairLaunchEscrow {
     error MaximumThresholdExceeded(uint256 attempted, uint256 remaining);
     error AlreadyFinalized();
     error NotFinalizable();
+    error ExitWindowClosed();
+    error NothingToWithdraw();
+    error WithdrawTransferFailed();
     error NotRefundable();
     error NothingToRefund();
     error RefundTransferFailed();
@@ -108,6 +120,7 @@ contract FairLaunchEscrow {
         uint256 maximumThreshold_,
         uint64 startTime_,
         uint64 endTime_,
+        uint64 exitDeadline_,
         uint64 finalizeGracePeriod_,
         uint256 tokenTotalSupply_,
         uint16 contributorAllocationBps_,
@@ -116,6 +129,9 @@ contract FairLaunchEscrow {
     ) {
         if (manifestHash_ == bytes32(0)) revert InvalidManifestHash();
         if (startTime_ >= endTime_ || endTime_ <= block.timestamp) revert InvalidWindow();
+        // The exit window must open with funding and close no later than it, so
+        // there is never a moment when funds are locked but still collectable.
+        if (exitDeadline_ <= startTime_ || exitDeadline_ > endTime_) revert InvalidExitWindow();
         if (minimumThreshold_ == 0 || maximumThreshold_ < minimumThreshold_) {
             revert InvalidThresholds();
         }
@@ -138,6 +154,7 @@ contract FairLaunchEscrow {
         maximumThreshold = maximumThreshold_;
         startTime = startTime_;
         endTime = endTime_;
+        exitDeadline = exitDeadline_;
         finalizeDeadline = endTime_ + finalizeGracePeriod_;
         tokenTotalSupply = tokenTotalSupply_;
         contributorAllocationBps = contributorAllocationBps_;
@@ -199,6 +216,29 @@ contract FairLaunchEscrow {
         emit Finalized(msg.sender, raised, launchedToken, contributorTokens);
     }
 
+    /// @notice Take a contribution back while the exit window is still open.
+    /// @dev Withdraws the caller's whole balance rather than a chosen amount.
+    ///      Anyone wanting a smaller position can withdraw and contribute again,
+    ///      which keeps this path to a single reachable state. Doing so frees up
+    ///      the caller's room under the per-wallet cap, but the cap still binds
+    ///      what any one address holds in the round at any moment.
+    function withdraw() external {
+        if (finalized) revert AlreadyFinalized();
+        if (block.timestamp >= exitDeadline) revert ExitWindowClosed();
+
+        uint256 amount = contributionOf[msg.sender];
+        if (amount == 0) revert NothingToWithdraw();
+
+        contributionOf[msg.sender] = 0;
+        totalContributed -= amount;
+        totalWithdrawn += amount;
+        emit Withdrawn(msg.sender, amount, totalContributed);
+
+        // forge-lint: disable-next-line(low-level-calls)
+        (bool sent,) = msg.sender.call{value: amount}("");
+        if (!sent) revert WithdrawTransferFailed();
+    }
+
     /// @notice Reclaim a contribution when the round failed or was never finalized.
     function refund() external {
         if (!isRefundable()) revert NotRefundable();
@@ -248,11 +288,19 @@ contract FairLaunchEscrow {
     function isFinalizable() public view returns (bool) {
         if (finalized) return false;
         if (totalContributed < minimumThreshold) return false;
+        // Launching while contributors can still walk away would cut the exit
+        // window short, so a round that fills its cap early still waits.
+        if (block.timestamp < exitDeadline) return false;
         // Past this point refunds are open, so finalizing would let the same
         // contribution be both refunded and claimed.
         if (block.timestamp >= finalizeDeadline) return false;
 
         return block.timestamp >= endTime || totalContributed >= maximumThreshold;
+    }
+
+    /// @notice Whether the caller's contribution can currently be withdrawn.
+    function isWithdrawable() public view returns (bool) {
+        return !finalized && block.timestamp >= startTime && block.timestamp < exitDeadline;
     }
 
     /// @notice Whether contributions can currently be reclaimed.

@@ -22,11 +22,14 @@ Its guarantees are structural rather than promised:
 
 - **Terms cannot change.** Every launch parameter is an immutable set once at construction. There is no setter, no owner, no admin role, and no upgrade path, so nothing can be adjusted after funding opens.
 - **The manifest is committed.** The round stores a `manifestHash` at construction. The escrow never interprets it; it exists so anyone can verify that the terms enforced on-chain match the document that was published off-chain.
-- **Value has two exits.** Native value leaves the contract only as a refund to the address that contributed it, or as the whole raise handed to the launch executor for liquidity. No path pays a deployer, developer, or treasury.
+- **Value only goes back or forward.** Native value leaves the contract only to the address that contributed it, as a withdrawal or a refund, or as the whole raise handed to the launch executor for liquidity. No path pays a deployer, developer, or treasury.
+- **Contributors can change their mind.** Withdrawals are open from the moment funding starts until the published exit deadline, after which the round locks. Finalization is barred until that deadline passes, so a round that fills its cap in the first minute still cannot launch early and cut the exit window short.
 - **No insider allocation is representable.** The constructor requires the contributor and liquidity shares to sum to the full supply, so a round with a founder share cannot be constructed. Rounding dust from the pro-rata split is added to liquidity, never to an individual.
 - **Nothing needs a backend.** Finalization, refunds, and claims are callable by anyone. Refunds also open automatically if finalization never happens, so a broken or unwilling executor cannot strand contributions.
 
-Funding closes at the published end time. The round is finalizable once the minimum is met, either after that end time or as soon as the hard cap is reached. Contributions are refundable when the round closes below its minimum, and also once the finalization grace period expires. Those two states are mutually exclusive by construction: finalization is barred from the moment refunds open, so a contribution can never be both returned and converted into tokens.
+Funding closes at the published end time. The round is finalizable once the minimum is met and the exit window has closed, either after the end time or as soon as the hard cap is reached. Contributions are refundable when the round closes below its minimum, and also once the finalization grace period expires. Leaving and launching are mutually exclusive by construction: finalization cannot happen while withdrawals are open, and it is barred again from the moment refunds open, so a contribution can never be both taken back and converted into tokens.
+
+Withdrawing frees the caller's room under the per-wallet cap, so the same address can contribute again. The cap therefore limits what any one address holds in a round at a given moment rather than what it has sent in total, and a round's cumulative inflow can exceed its hard cap as people come and go. A withdrawal can also drop a round below its minimum, which is the intended consequence: the contributors who stayed get refunds instead of a launch funded partly by money that walked out.
 
 ## What is stubbed
 
@@ -50,11 +53,11 @@ forge fmt --check
 forge lint
 ```
 
-The suite covers the funding window, per-wallet caps against both single and split contributions, the hard cap, threshold behaviour, permissionless finalization, the finalization deadline, pro-rata claims, refunds, and misbehaving executors and token contracts.
+The suite covers the funding window, per-wallet caps against both single and split contributions, the hard cap, threshold behaviour, the exit window and its effect on early finalization, permissionless finalization, the finalization deadline, pro-rata claims, refunds, and misbehaving executors and token contracts.
 
-The invariant suite drives random sequences of contributions, refunds, claims, finalizations, and time jumps, then checks properties from the outside: the per-address ledger always equals the reported total, published caps always hold, the contract holds exactly what it still owes, nobody extracts more than they contributed, claims never exceed the contributor allocation, refunds and launches stay mutually exclusive, and the committed terms are unchanged.
+The invariant suite drives random sequences of contributions, withdrawals, refunds, claims, finalizations, and time jumps, then checks properties from the outside: the per-address ledger always equals the reported total, published caps always hold, the contract holds exactly what it still owes, every wei is conserved between what is held, what went back to its contributor, and what went to liquidity, claims never exceed the contributor allocation, leaving and launching stay mutually exclusive, a launch never happens inside the exit window, and the committed terms are unchanged.
 
-An invariant that never reaches an interesting state passes while proving nothing, so `test_fixtureCanReachHardCapLaunchAndClaims` and `test_fixtureCanReachRefunds` drive each state deliberately. The fuzz parameters were tuned until the handler demonstrably reached the funded, launched, claimed, and refunded states; a change that puts one out of reach fails those tests instead of silently weakening every invariant into a statement about an idle escrow.
+An invariant that never reaches an interesting state passes while proving nothing, so `test_fixtureCanReachHardCapLaunchAndClaims`, `test_fixtureCanReachWithdrawals`, and `test_fixtureCanReachRefunds` drive each state deliberately. The fuzz parameters were tuned until the handler demonstrably reached the funded, launched, claimed, withdrawn, and refunded states; a change that puts one out of reach fails those tests instead of silently weakening every invariant into a statement about an idle escrow.
 
 ## Deliberately deferred
 

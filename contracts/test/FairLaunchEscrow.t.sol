@@ -8,7 +8,9 @@ import {ILaunchExecutor} from "../src/interfaces/ILaunchExecutor.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockLaunchExecutor} from "./mocks/MockLaunchExecutor.sol";
 
-contract RefundRejector {
+/// @notice A contributor that refuses incoming value, used to check that a
+///         failed payout rolls the whole call back.
+contract ValueRejector {
     FairLaunchEscrow internal escrow;
 
     constructor(FairLaunchEscrow escrow_) {
@@ -17,6 +19,10 @@ contract RefundRejector {
 
     function contribute(uint256 amount) external payable {
         escrow.contribute{value: amount}();
+    }
+
+    function withdraw() external {
+        escrow.withdraw();
     }
 
     function refund() external {
@@ -43,6 +49,7 @@ contract FairLaunchEscrowTest is Test {
 
     uint64 internal startTime;
     uint64 internal endTime;
+    uint64 internal exitDeadline;
 
     address internal alice = makeAddr("alice");
     address internal bob = makeAddr("bob");
@@ -52,6 +59,7 @@ contract FairLaunchEscrowTest is Test {
         vm.warp(1_800_000_000);
         startTime = uint64(block.timestamp + 1 hours);
         endTime = startTime + 24 hours;
+        exitDeadline = startTime + 12 hours;
         executor = new MockLaunchExecutor();
         escrow = _deploy();
 
@@ -68,6 +76,7 @@ contract FairLaunchEscrowTest is Test {
             MAXIMUM,
             startTime,
             endTime,
+            exitDeadline,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -102,6 +111,7 @@ contract FairLaunchEscrowTest is Test {
         assertEq(escrow.maximumThreshold(), MAXIMUM);
         assertEq(escrow.startTime(), startTime);
         assertEq(escrow.endTime(), endTime);
+        assertEq(escrow.exitDeadline(), exitDeadline);
         assertEq(escrow.finalizeDeadline(), endTime + GRACE);
         assertEq(escrow.contributorAllocationBps() + escrow.liquidityAllocationBps(), 10_000);
     }
@@ -115,6 +125,7 @@ contract FairLaunchEscrowTest is Test {
             MAXIMUM,
             startTime,
             endTime,
+            exitDeadline,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -130,6 +141,7 @@ contract FairLaunchEscrowTest is Test {
             MAXIMUM,
             endTime,
             startTime,
+            exitDeadline,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -145,6 +157,7 @@ contract FairLaunchEscrowTest is Test {
             MINIMUM,
             startTime,
             endTime,
+            exitDeadline,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -160,6 +173,7 @@ contract FairLaunchEscrowTest is Test {
             MAXIMUM,
             startTime,
             endTime,
+            exitDeadline,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -175,12 +189,38 @@ contract FairLaunchEscrowTest is Test {
             MAXIMUM,
             startTime,
             endTime,
+            exitDeadline,
             0,
             SUPPLY,
             CONTRIBUTOR_BPS,
             LIQUIDITY_BPS,
             ILaunchExecutor(address(executor))
         );
+    }
+
+    /// @dev An exit window that closes after funding would leave contributions
+    ///      locked but still collectable, and one that never opens would make
+    ///      the published promise unreachable.
+    function test_constructorRejectsExitWindowOutsideFunding() public {
+        uint64[2] memory invalid = [startTime, endTime + 1];
+
+        for (uint256 i = 0; i < invalid.length; i++) {
+            vm.expectRevert(FairLaunchEscrow.InvalidExitWindow.selector);
+            new FairLaunchEscrow(
+                MANIFEST_HASH,
+                WALLET_CAP,
+                MINIMUM,
+                MAXIMUM,
+                startTime,
+                endTime,
+                invalid[i],
+                GRACE,
+                SUPPLY,
+                CONTRIBUTOR_BPS,
+                LIQUIDITY_BPS,
+                ILaunchExecutor(address(executor))
+            );
+        }
     }
 
     /// @dev Any split that leaves supply unassigned is rejected, so there is no
@@ -198,6 +238,7 @@ contract FairLaunchEscrowTest is Test {
                 MAXIMUM,
                 startTime,
                 endTime,
+                exitDeadline,
                 GRACE,
                 SUPPLY,
                 splits[i][0],
@@ -285,7 +326,10 @@ contract FairLaunchEscrowTest is Test {
         escrow.finalize();
     }
 
-    function test_finalizableEarlyOnceMaximumReached() public {
+    /// @dev A full round can launch before its end time, but never before the
+    ///      exit window closes, or filling the cap early would quietly cancel
+    ///      the withdrawal period contributors were promised.
+    function test_fillingTheCapEarlyStillWaitsForTheExitWindow() public {
         vm.warp(startTime);
         for (uint256 i = 0; i < MAXIMUM / WALLET_CAP; i++) {
             address contributor = address(uint160(0x3000 + i));
@@ -293,7 +337,16 @@ contract FairLaunchEscrowTest is Test {
             _contribute(contributor, WALLET_CAP);
         }
 
-        assertTrue(escrow.isFinalizable(), "hard cap should allow early finalize");
+        assertFalse(escrow.isFinalizable(), "exit window must be honoured");
+        vm.expectRevert(FairLaunchEscrow.NotFinalizable.selector);
+        escrow.finalize();
+
+        vm.warp(exitDeadline);
+        assertTrue(escrow.isFinalizable(), "hard cap allows launching before the end time");
+        assertLt(block.timestamp, endTime);
+
+        escrow.finalize();
+        assertTrue(escrow.finalized());
     }
 
     function test_anyoneCanFinalizeAndFundsGoToLiquidity() public {
@@ -348,6 +401,120 @@ contract FairLaunchEscrowTest is Test {
 
         assertFalse(escrow.finalized(), "a failed launch must leave the round open");
         assertEq(address(escrow).balance, MINIMUM, "contributions stay put");
+    }
+
+    // --------------------------------------------------------- exit window
+
+    function test_withdrawReturnsTheWholeContributionAndFreesTheWalletCap() public {
+        vm.warp(startTime);
+        _contribute(alice, WALLET_CAP);
+        uint256 before = alice.balance;
+
+        vm.expectEmit(true, false, false, true, address(escrow));
+        emit FairLaunchEscrow.Withdrawn(alice, WALLET_CAP, 0);
+        vm.prank(alice);
+        escrow.withdraw();
+
+        assertEq(alice.balance, before + WALLET_CAP);
+        assertEq(escrow.contributionOf(alice), 0);
+        assertEq(escrow.totalContributed(), 0);
+        assertEq(escrow.totalWithdrawn(), WALLET_CAP);
+        assertEq(address(escrow).balance, 0);
+
+        // The cap limits what one address holds in the round, not what it has
+        // ever sent, so leaving frees the room up again.
+        _contribute(alice, WALLET_CAP);
+        assertEq(escrow.contributionOf(alice), WALLET_CAP);
+    }
+
+    function test_withdrawBlockedOnceTheExitWindowCloses() public {
+        vm.warp(startTime);
+        _contribute(alice, 1 ether);
+
+        vm.warp(exitDeadline);
+        assertFalse(escrow.isWithdrawable());
+        vm.expectRevert(FairLaunchEscrow.ExitWindowClosed.selector);
+        vm.prank(alice);
+        escrow.withdraw();
+        assertEq(escrow.contributionOf(alice), 1 ether);
+
+        // Funding itself runs longer than the exit window, so late money can
+        // still join a round that nobody can leave.
+        _contribute(bob, 1 ether);
+        assertEq(escrow.contributionOf(bob), 1 ether);
+    }
+
+    function test_withdrawBlockedAfterLaunch() public {
+        _raiseToMinimum();
+        vm.warp(endTime);
+        escrow.finalize();
+
+        vm.expectRevert(FairLaunchEscrow.AlreadyFinalized.selector);
+        vm.prank(address(uint160(0x1000)));
+        escrow.withdraw();
+    }
+
+    function test_withdrawRevertsWithNothingContributed() public {
+        vm.warp(startTime);
+
+        vm.expectRevert(FairLaunchEscrow.NothingToWithdraw.selector);
+        vm.prank(alice);
+        escrow.withdraw();
+    }
+
+    function test_withdrawRevertsWhenRecipientRejectsValue() public {
+        ValueRejector rejector = new ValueRejector(escrow);
+        vm.deal(address(rejector), 1 ether);
+
+        vm.warp(startTime);
+        rejector.contribute{value: 1 ether}(1 ether);
+
+        vm.expectRevert(FairLaunchEscrow.WithdrawTransferFailed.selector);
+        rejector.withdraw();
+
+        assertEq(escrow.contributionOf(address(rejector)), 1 ether, "failed withdrawal must roll back");
+    }
+
+    function test_isWithdrawableTracksTheWindow() public {
+        assertFalse(escrow.isWithdrawable(), "closed before funding opens");
+
+        vm.warp(startTime);
+        assertTrue(escrow.isWithdrawable());
+
+        vm.warp(uint256(exitDeadline) - 1);
+        assertTrue(escrow.isWithdrawable(), "open until the last second");
+
+        vm.warp(exitDeadline);
+        assertFalse(escrow.isWithdrawable());
+    }
+
+    /// @dev Leaving can drop a round below its minimum, which is the intended
+    ///      consequence: the contributors who stayed get refunds rather than a
+    ///      launch funded partly by money that walked out.
+    function test_withdrawingBelowTheMinimumSendsTheRoundToRefunds() public {
+        _raiseToMinimum();
+
+        vm.prank(address(uint160(0x1000)));
+        escrow.withdraw();
+        assertLt(escrow.totalContributed(), MINIMUM);
+
+        vm.warp(endTime);
+        assertFalse(escrow.isFinalizable());
+        assertTrue(escrow.isRefundable());
+    }
+
+    function testFuzz_withdrawReturnsExactlyWhatWasContributed(uint256 seed) public {
+        uint256 amount = bound(seed, 1, WALLET_CAP);
+
+        vm.warp(startTime);
+        vm.deal(alice, amount);
+        _contribute(alice, amount);
+
+        vm.prank(alice);
+        escrow.withdraw();
+
+        assertEq(alice.balance, amount, "withdrawal must be exact");
+        assertEq(address(escrow).balance, 0);
     }
 
     // ------------------------------------------------------------- refunds
@@ -414,7 +581,7 @@ contract FairLaunchEscrowTest is Test {
     }
 
     function test_refundRevertsWhenRecipientRejectsValue() public {
-        RefundRejector rejector = new RefundRejector(escrow);
+        ValueRejector rejector = new ValueRejector(escrow);
         vm.deal(address(rejector), 1 ether);
 
         vm.warp(startTime);

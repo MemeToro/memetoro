@@ -28,7 +28,11 @@ Smart contracts are the deterministic system responsible for accepting funding, 
 
 The funding escrow is the first implemented piece. It holds one round's contributions and applies its published rules, with every launch parameter fixed as an immutable at construction so there is no owner, admin, or upgrade path able to change terms after funding opens. Native value can leave it only as a refund to the address that contributed it or as the whole raise handed to the launch executor, and the allocation split must assign the entire supply, so a round carrying an insider share cannot be constructed in the first place.
 
-Refunds open automatically when a round closes below its minimum, and again if finalization never happens within a grace period, so a broken executor cannot strand contributions. Finalization is barred from the moment refunds open, which keeps the two paths mutually exclusive.
+Contributors are not locked in the moment they commit. Withdrawals stay open until a published exit deadline, and finalization is barred until that deadline passes, so a round that fills its cap immediately still cannot launch early and cut the window short. After the deadline the round locks, which is what stops a large contributor from pulling out at the last second and collapsing a raise that others had already committed to.
+
+Refunds open automatically when a round closes below its minimum, and again if finalization never happens within a grace period, so a broken executor cannot strand contributions. Leaving and launching are mutually exclusive throughout: finalization cannot happen while withdrawals are open, and it is barred again once refunds open.
+
+One consequence is deliberate. Because withdrawing frees a wallet's room under the per-wallet cap, the cap limits what an address holds in a round at any moment rather than what it has ever sent, and a round's cumulative inflow can exceed its hard cap as people come and go. What the cap guarantees is the composition of the round at the moment it launches.
 
 Token creation and liquidity provision sit behind an executor interface rather than inside the escrow. That boundary keeps the fairness properties testable without an exchange in the picture, and it is where the remaining launch work belongs.
 
@@ -69,6 +73,7 @@ flowchart LR
 - Published launch terms cannot be silently changed.
 - A round commits to the manifest it was published under.
 - Contributions are recoverable whenever a launch does not happen.
+- Contributors can leave until the published exit deadline, and no launch happens before it.
 - The rejected shortlist is published alongside the winner.
 - Declining to propose is a valid outcome.
 - Published figures are counted, not scored.

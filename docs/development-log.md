@@ -1,5 +1,34 @@
 # Development Log
 
+## 2026-09-15 — Contributor Exit Window
+
+### Completed
+
+- Added a withdrawal path to `FairLaunchEscrow`. Contributions can be taken back from the moment funding opens until a published `exitDeadline`, after which the round locks.
+- Barred finalization until the exit deadline passes, so a round that fills its hard cap in the first minute can no longer launch early and cut the withdrawal period short.
+- Required the exit deadline to sit inside the funding window, so there is never a moment when funds are locked but the round is still collecting.
+- Tracked withdrawals separately from refunds in `totalWithdrawn`, keeping "changed my mind" distinguishable from "the round failed" in the public record.
+- Added `isWithdrawable` alongside the existing state views, so an interface can render the three actions without replicating the timing rules.
+- Added 9 unit and fuzz tests for the window, and an invariant asserting that a launch never happens inside it.
+
+### Decisions
+
+- Withdrawal takes the caller's whole balance rather than a chosen amount. Partial exits would be friendlier but add a reachable state for no clear benefit, since anyone wanting a smaller position can withdraw and contribute again.
+- Withdrawing frees the caller's room under the per-wallet cap. That means cumulative inflow can exceed the hard cap as a round churns, so the cap is a statement about the round's composition at launch rather than about lifetime contributions. Tracking lifetime totals per wallet would close that, at the cost of a second ledger.
+- A withdrawal is allowed to drop a round below its minimum. The alternative is trapping people once enough others have joined, which defeats the purpose of the window.
+
+### Notes
+
+The exit window invalidated an invariant rather than just adding one. `invariant_refundsNeverExceedContributions` bounded total outflow by the hard cap, which held only because contributions could previously shrink only after funding closed. Once withdrawing frees cap room, both inflow and outflow grow without limit as a round churns, and the bound is simply false. It is replaced by `invariant_nativeValueIsConserved`, which states the property that actually matters: every wei is either still held, back with the address that sent it, or in liquidity. That is stronger than the bound it replaces.
+
+Re-running the reachability probe was necessary rather than optional, since gating finalization behind the exit deadline could easily have pushed the launched state back out of the fuzzer's reach. All five states, including withdrawals, are still reached.
+
+### Known limitations
+
+- The manifest has no field for the exit deadline, so this term cannot yet be published or committed to. That has to land alongside the canonical manifest hash.
+- No per-wallet lifetime contribution tracking, as noted above.
+- Everything from the previous entry still stands: the executor is a stub, nothing is deployed, and there has been no security review.
+
 ## 2026-09-07 — Fair-Launch Escrow
 
 ### Completed

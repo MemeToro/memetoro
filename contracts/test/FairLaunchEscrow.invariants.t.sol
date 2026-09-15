@@ -18,8 +18,11 @@ contract EscrowHandler is CommonBase, StdCheats, StdUtils {
     FairLaunchEscrow public immutable escrow;
 
     address[] public actors;
-    uint256 public valueReceived;
+    uint256 public valueContributed;
+    uint256 public valueWithdrawn;
+    uint256 public valueRefunded;
     uint256 public tokensReceived;
+    uint256 public withdrawCalls;
     uint256 public refundCalls;
     uint256 public claimCalls;
     uint256 public finalizeCalls;
@@ -50,7 +53,9 @@ contract EscrowHandler is CommonBase, StdCheats, StdUtils {
         vm.prank(actor);
         // Reverts are expected and uninteresting here; the invariants care
         // about the state that successful calls leave behind.
-        try escrow.contribute{value: amount}() {} catch {}
+        try escrow.contribute{value: amount}() {
+            valueContributed += amount;
+        } catch {}
     }
 
     /// @dev Fills an actor's remaining allowance in one call. Random amounts
@@ -64,13 +69,26 @@ contract EscrowHandler is CommonBase, StdCheats, StdUtils {
         if (amount == 0) return;
 
         vm.prank(actor);
-        try escrow.contribute{value: amount}() {} catch {}
+        try escrow.contribute{value: amount}() {
+            valueContributed += amount;
+        } catch {}
     }
 
     function finalize(uint256 actorSeed) external {
         vm.prank(_actor(actorSeed));
         try escrow.finalize() {
             finalizeCalls++;
+        } catch {}
+    }
+
+    function withdraw(uint256 actorSeed) external {
+        address actor = _actor(actorSeed);
+        uint256 balanceBefore = actor.balance;
+
+        vm.prank(actor);
+        try escrow.withdraw() {
+            withdrawCalls++;
+            valueWithdrawn += actor.balance - balanceBefore;
         } catch {}
     }
 
@@ -81,7 +99,7 @@ contract EscrowHandler is CommonBase, StdCheats, StdUtils {
         vm.prank(actor);
         try escrow.refund() {
             refundCalls++;
-            valueReceived += actor.balance - balanceBefore;
+            valueRefunded += actor.balance - balanceBefore;
         } catch {}
     }
 
@@ -116,6 +134,9 @@ contract FairLaunchEscrowInvariantTest is Test {
     // steps can close funding and expire finalization, or the refund and
     // launch-after-deadline states are never explored.
     uint64 internal constant FUNDING_WINDOW = 2 days;
+    // Must sit inside the funding window with room on both sides, so runs can
+    // reach both the withdrawable state and the launchable state after it.
+    uint64 internal constant EXIT_WINDOW = 1 days;
     uint64 internal constant GRACE = 2 days;
     uint256 internal constant SUPPLY = 1_000_000_000 ether;
     uint16 internal constant CONTRIBUTOR_BPS = 5_000;
@@ -136,6 +157,7 @@ contract FairLaunchEscrowInvariantTest is Test {
             MAXIMUM,
             uint64(block.timestamp),
             uint64(block.timestamp) + FUNDING_WINDOW,
+            uint64(block.timestamp) + EXIT_WINDOW,
             GRACE,
             SUPPLY,
             CONTRIBUTOR_BPS,
@@ -164,11 +186,19 @@ contract FairLaunchEscrowInvariantTest is Test {
         }
         assertEq(escrow.totalContributed(), MAXIMUM, "hard cap must be reachable");
 
+        vm.warp(escrow.exitDeadline());
         handler.finalize(0);
         assertTrue(escrow.finalized(), "launch must be reachable");
 
         handler.claim(0);
         assertGt(escrow.totalClaimed(), 0, "claims must be reachable");
+    }
+
+    function test_fixtureCanReachWithdrawals() public {
+        handler.contribute(0, WALLET_CAP);
+
+        handler.withdraw(0);
+        assertGt(escrow.totalWithdrawn(), 0, "withdrawals must be reachable");
     }
 
     function test_fixtureCanReachRefunds() public {
@@ -202,10 +232,23 @@ contract FairLaunchEscrowInvariantTest is Test {
         }
     }
 
-    /// @dev Nobody can extract more native value than they put in.
-    function invariant_refundsNeverExceedContributions() public view {
-        assertLe(handler.valueReceived(), MAXIMUM);
-        assertEq(handler.valueReceived(), escrow.totalRefunded());
+    /// @dev Every wei that came in is still held, went back to the address that
+    ///      sent it, or went to liquidity at launch. Nothing else can happen to
+    ///      it.
+    ///
+    ///      Note this cannot be bounded by the hard cap. Withdrawing frees a
+    ///      wallet's room to contribute again, so cumulative inflow and outflow
+    ///      both grow without limit as a round churns. The cap binds what the
+    ///      round holds at any moment, not what passed through it.
+    function invariant_nativeValueIsConserved() public view {
+        uint256 sentToLaunch = escrow.finalized() ? executor.lastValue() : 0;
+
+        assertEq(handler.valueWithdrawn(), escrow.totalWithdrawn());
+        assertEq(handler.valueRefunded(), escrow.totalRefunded());
+        assertEq(
+            handler.valueContributed(),
+            escrow.totalWithdrawn() + escrow.totalRefunded() + address(escrow).balance + sentToLaunch
+        );
     }
 
     /// @dev Claims can never distribute more than the contributor allocation,
@@ -222,16 +265,18 @@ contract FairLaunchEscrowInvariantTest is Test {
         }
     }
 
-    /// @dev Refunding and claiming are mutually exclusive, so a contribution
-    ///      can never be both returned and converted into tokens.
-    function invariant_refundAndLaunchAreMutuallyExclusive() public view {
+    /// @dev Leaving and launching are mutually exclusive, so a contribution can
+    ///      never be both taken back and converted into tokens.
+    function invariant_leavingAndLaunchingAreMutuallyExclusive() public view {
         if (escrow.finalized()) {
             assertEq(escrow.totalRefunded(), 0);
             assertFalse(escrow.isRefundable());
+            assertFalse(escrow.isWithdrawable(), "a launched round cannot be left");
         } else {
             assertEq(escrow.totalClaimed(), 0);
         }
         assertFalse(escrow.isFinalizable() && escrow.isRefundable());
+        assertFalse(escrow.isFinalizable() && escrow.isWithdrawable());
     }
 
     /// @dev No sequence of calls can rewrite the committed terms.
@@ -243,10 +288,13 @@ contract FairLaunchEscrowInvariantTest is Test {
         assertEq(escrow.contributorAllocationBps() + escrow.liquidityAllocationBps(), 10_000);
     }
 
-    /// @dev A launch is only reachable through the published conditions.
+    /// @dev A launch is only reachable through the published conditions,
+    ///      including the promise that nobody launches while contributors can
+    ///      still walk away.
     function invariant_launchOnlyHappensOnPublishedConditions() public view {
         if (escrow.finalized()) {
             assertGe(escrow.totalContributed(), escrow.minimumThreshold());
+            assertGe(block.timestamp, escrow.exitDeadline(), "launched inside the exit window");
             assertLe(handler.finalizeCalls(), 1);
         }
     }
