@@ -12,7 +12,9 @@ MemeToro uses public smart contracts to apply each proposal's published launch r
 | `src/FairLaunchEscrow.sol` | Funding escrow for one launch round |
 | `src/interfaces/ILaunchExecutor.sol` | Boundary for token creation and liquidity |
 | `src/interfaces/IERC20Minimal.sol` | The ERC-20 surface needed to pay claims |
-| `test/` | Unit, fuzz, and invariant tests with mock executor and token |
+| `test/FairLaunchEscrow.t.sol` | Unit and fuzz tests |
+| `test/FairLaunchEscrow.invariants.t.sol` | Invariants over randomized action sequences |
+| `test/ManifestCommitment.t.sol` | Deploys a round from the manifest the agent publishes |
 
 ## FairLaunchEscrow
 
@@ -21,7 +23,7 @@ The escrow accepts contributions in the network's native asset for a single roun
 Its guarantees are structural rather than promised:
 
 - **Terms cannot change.** Every launch parameter is an immutable set once at construction. There is no setter, no owner, no admin role, and no upgrade path, so nothing can be adjusted after funding opens.
-- **The manifest is committed.** The round stores a `manifestHash` at construction. The escrow never interprets it; it exists so anyone can verify that the terms enforced on-chain match the document that was published off-chain.
+- **The manifest is committed.** The round stores a `manifestHash` at construction, the digest the agent publishes in the manifest's `commitment` block. The escrow never interprets it; it exists so anyone can verify that the round was deployed against the exact document that was published, rather than a quietly edited version of it.
 - **Value only goes back or forward.** Native value leaves the contract only to the address that contributed it, as a withdrawal or a refund, or as the whole raise handed to the launch executor for liquidity. No path pays a deployer, developer, or treasury.
 - **Contributors can change their mind.** Withdrawals are open from the moment funding starts until the published exit deadline, after which the round locks. Finalization is barred until that deadline passes, so a round that fills its cap in the first minute still cannot launch early and cut the exit window short.
 - **No insider allocation is representable.** The constructor requires the contributor and liquidity shares to sum to the full supply, so a round with a founder share cannot be constructed. Rounding dust from the pro-rata split is added to liquidity, never to an individual.
@@ -59,10 +61,17 @@ The invariant suite drives random sequences of contributions, withdrawals, refun
 
 An invariant that never reaches an interesting state passes while proving nothing, so `test_fixtureCanReachHardCapLaunchAndClaims`, `test_fixtureCanReachWithdrawals`, and `test_fixtureCanReachRefunds` drive each state deliberately. The fuzz parameters were tuned until the handler demonstrably reached the funded, launched, claimed, withdrawn, and refunded states; a change that puts one out of reach fails those tests instead of silently weakening every invariant into a statement about an idle escrow.
 
+## Checked against the agent
+
+`ManifestCommitment.t.sol` reads `agent/pipeline/fixtures/expected-manifest.json`, the manifest the pipeline publishes, and deploys a round from exactly those numbers. It asserts every immutable equals the published term, that the readable terms mean the same as the enforced ones, and that the round commits to the manifest's own digest.
+
+Both halves of MemeToro claim to describe the same launch round, and until something reads one and builds the other that agreement is only a claim. A pipeline change that alters a term, a unit, or a field name fails here rather than at a deployment. The agent suite pins the same file from its side, so neither half can move without the other noticing.
+
+Recomputing the digest on-chain is deliberately not attempted. The escrow stores the commitment without interpreting it, and checking it against a published document is an off-chain job for whoever is reading the proposal.
+
 ## Deliberately deferred
 
 - The real launch executor: token deployment, liquidity provision, and LP handling.
-- Canonical manifest serialization, so the committed hash can be reproduced from a published manifest. The escrow accepts a hash today, but the agent does not yet compute one, so the two halves are not yet connected.
 - A factory for deploying rounds, and the deployment scripts that go with it.
 - Testnet deployment and verification on BNB Smart Chain.
 - ERC-8004 agent identity and reputation.

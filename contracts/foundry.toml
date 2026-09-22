@@ -9,6 +9,10 @@ evm_version = "shanghai"
 optimizer = true
 optimizer_runs = 200
 bytecode_hash = "none"
+# Read-only access to the manifest the agent pipeline publishes, so the
+# contract suite can deploy a round from the same file the agent produced
+# rather than from numbers copied across by hand.
+fs_permissions = [{ access = "read", path = "../agent/pipeline/fixtures" }]
 
 [lint]
 # Test files use deliberate test-only idioms (literal address casts, cheatcodes

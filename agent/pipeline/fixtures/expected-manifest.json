@@ -1,0 +1,312 @@
+{
+  "schemaVersion": "0.3.0",
+  "kind": "memetoro.launch-manifest",
+  "status": "dry-run",
+  "concept": {
+    "name": "Cat Day",
+    "symbol": "CATDAY",
+    "summary": "Wholesome meme around International Cat Day celebrations, remixing cute cat photos, videos, and adoption vibes into light shareable content.",
+    "marketReasoning": "Signal x-3 shows sustained high-engagement cat image and video sharing for the annual observance, with clear remixable hooks like portraits, fun facts, and fandom crossovers that stay light and positive.",
+    "riskAssessment": "Low harm profile: wholesome animal content, minimal manipulation or tragedy exposure, and only minor sensitivity if unrelated suffering posts appear."
+  },
+  "evidence": [
+    {
+      "url": "https://x.com/IslamicSH_/status/2086162680780615748",
+      "linkType": "permalink",
+      "title": null,
+      "publishedDate": null,
+      "account": "@IslamicSH_",
+      "note": "Posts happy #InternationalCatDay greeting with cat image, high engagement."
+    },
+    {
+      "url": "https://x.com/CrashsLanding/status/2086120352183160864",
+      "linkType": "permalink",
+      "title": null,
+      "publishedDate": null,
+      "account": "@CrashsLanding",
+      "note": "Celebrates the day with call for cat pics and adoption awareness."
+    },
+    {
+      "url": "https://x.com/StygianSis/status/2086810977035534784",
+      "linkType": "permalink",
+      "title": null,
+      "publishedDate": null,
+      "account": "@StygianSis",
+      "note": "Shares video wishing happy International Cat Day."
+    }
+  ],
+  "sourceFacts": {
+    "evidenceCount": 3,
+    "distinctDomainCount": 1,
+    "distinctDomains": [
+      "x.com"
+    ],
+    "permalinkCount": 3,
+    "sectionFrontCount": 0,
+    "datedEvidenceCount": 0,
+    "oldestSourceDate": null,
+    "newestSourceDate": null
+  },
+  "token": {
+    "totalSupply": "1000000000",
+    "contributorAllocationPercent": 50,
+    "liquidityAllocationPercent": 50,
+    "insiderAllocationPercent": 0
+  },
+  "funding": {
+    "asset": "BNB",
+    "walletCap": "1",
+    "minimumThreshold": "10",
+    "maximumThreshold": "50",
+    "startTime": "2026-08-10T14:56:04.000Z",
+    "endTime": "2026-08-11T14:56:04.000Z",
+    "exitDeadline": "2026-08-11T02:56:04.000Z"
+  },
+  "chainTerms": {
+    "walletCapWei": "1000000000000000000",
+    "minimumThresholdWei": "10000000000000000000",
+    "maximumThresholdWei": "50000000000000000000",
+    "startTime": 1786373764,
+    "endTime": 1786460164,
+    "exitDeadline": 1786416964,
+    "finalizeGracePeriodSeconds": 604800,
+    "tokenDecimals": 18,
+    "tokenTotalSupplyBaseUnits": "1000000000000000000000000000",
+    "contributorAllocationBps": 5000,
+    "liquidityAllocationBps": 5000
+  },
+  "execution": {
+    "launchConditions": [
+      "Funding starts and ends at the published times.",
+      "Contributions can be withdrawn until the published exit deadline.",
+      "No launch happens before the exit deadline.",
+      "The minimum funding threshold is met.",
+      "The maximum funding threshold is not exceeded."
+    ],
+    "permissionlessFinalize": true,
+    "permissionlessRefund": true,
+    "backendRequired": false
+  },
+  "selection": {
+    "consideredCount": 10,
+    "selectedSignalIds": [
+      "x-3"
+    ],
+    "candidates": [
+      {
+        "id": "news-1",
+        "sourceType": "worldwide-news",
+        "topic": "Israel rejects Trump’s Gaza peace plan",
+        "riskNotes": "High sensitivity because the topic involves an active war, civilian suffering, and political propaganda; misinformation risk is substantial and claims from involved parties may be strategic rather than verifiable.",
+        "sourceFacts": {
+          "evidenceCount": 4,
+          "distinctDomainCount": 3,
+          "distinctDomains": [
+            "aljazeera.com",
+            "cnn.com",
+            "reuters.com"
+          ],
+          "permalinkCount": 1,
+          "sectionFrontCount": 3,
+          "datedEvidenceCount": 3,
+          "oldestSourceDate": "2026-08-10",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "news-2",
+        "sourceType": "worldwide-news",
+        "topic": "Typhoon Dolphin disrupts China and the region",
+        "riskNotes": "Includes disaster and possible casualty coverage, so imagery can be traumatic; unverified rescue or death claims should be treated cautiously while the storm situation is still evolving.",
+        "sourceFacts": {
+          "evidenceCount": 4,
+          "distinctDomainCount": 4,
+          "distinctDomains": [
+            "abc.net.au",
+            "cnn.com",
+            "nbcnews.com",
+            "reuters.com"
+          ],
+          "permalinkCount": 0,
+          "sectionFrontCount": 4,
+          "datedEvidenceCount": 4,
+          "oldestSourceDate": "2026-08-10",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "news-3",
+        "sourceType": "worldwide-news",
+        "topic": "Trump, Iran, and the Strait of Hormuz standoff",
+        "riskNotes": "High misinformation and manipulation risk because state-linked rhetoric and market-moving claims can be strategic; the subject also has direct war-escalation and shipping-security sensitivity.",
+        "sourceFacts": {
+          "evidenceCount": 4,
+          "distinctDomainCount": 3,
+          "distinctDomains": [
+            "1news.co.nz",
+            "aljazeera.com",
+            "reuters.com"
+          ],
+          "permalinkCount": 1,
+          "sectionFrontCount": 3,
+          "datedEvidenceCount": 4,
+          "oldestSourceDate": "2026-08-09",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "news-4",
+        "sourceType": "worldwide-news",
+        "topic": "Ukraine-Russia strikes deepen and spread",
+        "riskNotes": "Very high tragedy and propaganda risk; casualty counts are often revised, attribution can be contested, and graphic imagery may be harmful or misleading if circulated without context.",
+        "sourceFacts": {
+          "evidenceCount": 4,
+          "distinctDomainCount": 4,
+          "distinctDomains": [
+            "aljazeera.com",
+            "independent.co.uk",
+            "nbcnews.com",
+            "reuters.com"
+          ],
+          "permalinkCount": 0,
+          "sectionFrontCount": 4,
+          "datedEvidenceCount": 4,
+          "oldestSourceDate": "2026-08-10",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "news-5",
+        "sourceType": "worldwide-news",
+        "topic": "Typhoon Dolphin causes mass evacuation and flooding in China",
+        "riskNotes": "Disaster coverage carries strong human-cost sensitivity, and early reports can overstate or understate impacts before authorities confirm them.",
+        "sourceFacts": {
+          "evidenceCount": 4,
+          "distinctDomainCount": 4,
+          "distinctDomains": [
+            "abc.net.au",
+            "abcnews.com",
+            "nbcnews.com",
+            "reuters.com"
+          ],
+          "permalinkCount": 0,
+          "sectionFrontCount": 4,
+          "datedEvidenceCount": 4,
+          "oldestSourceDate": "2026-08-10",
+          "newestSourceDate": "2026-08-10"
+        },
+        "selected": false
+      },
+      {
+        "id": "x-1",
+        "sourceType": "x-conversation",
+        "topic": "Burritogate / $20 burrito affordability debate",
+        "riskNotes": "High political polarization and class sensitivity; risk of misinformation on actual food prices/inflation data; potential for xenophobic or anti-government manipulation in replies.",
+        "sourceFacts": {
+          "evidenceCount": 3,
+          "distinctDomainCount": 1,
+          "distinctDomains": [
+            "x.com"
+          ],
+          "permalinkCount": 3,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": false
+      },
+      {
+        "id": "x-2",
+        "sourceType": "x-conversation",
+        "topic": "Cyberunc nursing home escape roleplay",
+        "riskNotes": "Misinformation risk as many initially believed it real; sensitivity around elder care, nursing home abuse claims, and potential exploitation of vulnerable imagery; staged content could fuel scams or false narratives.",
+        "sourceFacts": {
+          "evidenceCount": 3,
+          "distinctDomainCount": 1,
+          "distinctDomains": [
+            "x.com"
+          ],
+          "permalinkCount": 3,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": false
+      },
+      {
+        "id": "x-3",
+        "sourceType": "x-conversation",
+        "topic": "International Cat Day celebrations",
+        "riskNotes": "Low overall; minor sensitivity if mixed with animal suffering posts (e.g., cats in conflict zones); low manipulation risk beyond typical engagement farming.",
+        "sourceFacts": {
+          "evidenceCount": 3,
+          "distinctDomainCount": 1,
+          "distinctDomains": [
+            "x.com"
+          ],
+          "permalinkCount": 3,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": true
+      },
+      {
+        "id": "x-4",
+        "sourceType": "x-conversation",
+        "topic": "WNBA on-court drama and player accusations",
+        "riskNotes": "High sensitivity around race, gender, and 'trans men in women's sports' claims; misinformation on incident details; potential for harassment or polarized manipulation of sports discourse.",
+        "sourceFacts": {
+          "evidenceCount": 3,
+          "distinctDomainCount": 1,
+          "distinctDomains": [
+            "x.com"
+          ],
+          "permalinkCount": 3,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": false
+      },
+      {
+        "id": "x-5",
+        "sourceType": "x-conversation",
+        "topic": "Hasan Piker as top political talk figure",
+        "riskNotes": "Elevated misinformation and personal attack risks; high sensitivity/polarization around streamer politics; potential for coordinated harassment or doxxing-adjacent content.",
+        "sourceFacts": {
+          "evidenceCount": 2,
+          "distinctDomainCount": 1,
+          "distinctDomains": [
+            "x.com"
+          ],
+          "permalinkCount": 2,
+          "sectionFrontCount": 0,
+          "datedEvidenceCount": 0,
+          "oldestSourceDate": null,
+          "newestSourceDate": null
+        },
+        "selected": false
+      }
+    ]
+  },
+  "provenance": {
+    "generatedAt": "2026-08-10T13:56:04.850Z",
+    "signalsGeneratedAt": "2026-08-10T13:56:04.850Z",
+    "windowHours": 24,
+    "generator": "fixture"
+  },
+  "commitment": {
+    "algorithm": "sha256",
+    "canonicalization": "memetoro-canonical-json-1",
+    "hash": "0xa315e10a20ea42e5fb879697bba4591d883bb00553fbaaa0e2f2983d924db479"
+  }
+}

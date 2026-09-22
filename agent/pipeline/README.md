@@ -8,10 +8,11 @@ This MVP turns collected trend signals into one draft MemeToro launch manifest, 
 2. Normalizes news and X candidates, attaching each evidence link to its recorded title, publication date, account, and description.
 3. Computes countable source facts per candidate: link counts, distinct domains, permalinks against publisher section fronts, and how many links carry a date.
 4. Asks xAI to select at most one candidate and describe it, or to decline.
-5. Applies fixed draft launch parameters from code.
+5. Applies fixed draft launch parameters from code, publishing each one both as a reader sees it and as the integers a contract constructor takes.
 6. Publishes the full candidate shortlist alongside the winner.
-7. Rejects malformed concepts, fabricated evidence links, incomplete selection records, insider allocations, and non-permissionless execution settings.
-8. Prints the result as JSON or as rendered markdown.
+7. Commits to the finished document with a digest over its canonical form.
+8. Rejects malformed concepts, fabricated evidence links, incomplete selection records, insider allocations, term representations that disagree with each other, broken commitments, and non-permissionless execution settings.
+9. Prints the result as JSON or as rendered markdown.
 
 The model selects and describes a concept. It does not choose funding policy, custody funds, schedule launches, or call contracts.
 
@@ -23,6 +24,7 @@ The model selects and describes a concept. It does not choose funding policy, cu
 | `lib/signals.mjs` | Normalization, evidence enrichment, source facts |
 | `lib/concept.mjs` | Concept schema, prompt, generation, validation |
 | `lib/manifest.mjs` | Launch policy, manifest and no-proposal builders, validation |
+| `lib/canonical.mjs` | Canonical serialization and the published commitment |
 | `lib/render.mjs` | Deterministic manifest-to-markdown rendering |
 | `test/` | Fixture-based tests, including negative cases |
 
@@ -34,11 +36,16 @@ No credentials or network requests are needed:
 node run.mjs --dry-run
 node run.mjs --dry-run --format markdown
 node run.mjs --dry-run --scenario decline
+node run.mjs --dry-run --out fixtures/expected-manifest.json
 ```
+
+Use `--out` rather than shell redirection when writing a document to disk. Some shells re-encode redirected output, and a published document whose bytes changed in transit no longer matches its own commitment.
 
 The fixtures under [`fixtures/`](./fixtures/) are frozen captures of real runs from 2026-08-10, not synthetic placeholders. `trend-signals.json` holds the collected signals exactly as the connector emitted them, and `concept-response.json` holds the concept the model produced from them. Because the snapshot mixes high-sensitivity topics with lighter ones, the dry run also demonstrates the agent passing over war, disaster, and polarized candidates.
 
 `sensitive-only-signals.json` is the same capture reduced to its high-harm candidates, and `decline-response.json` is the model's real refusal on that input. Together they exercise the no-proposal path offline.
+
+`expected-manifest.json` is the manifest the propose scenario produces, pinned. The contract suite deploys a launch round from it and asserts the enforced terms equal the published ones, so it is a shared fixture rather than an agent-only one. Regenerate it with the `--out` command above whenever the pipeline changes what it publishes, or both suites will fail.
 
 The captures cite public news and X post URLs. Their summaries and risk notes are model-written and were never verified, so treat the files as recorded provider input frozen in time rather than as accurate reporting about the events or accounts they mention.
 

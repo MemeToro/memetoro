@@ -1,5 +1,38 @@
 # Development Log
 
+## 2026-09-22 — Manifest Commitment
+
+### Completed
+
+- Added canonical JSON serialization and a SHA-256 commitment, using Node's standard library so the repository stays dependency-free. Every launch manifest and no-proposal record now carries a digest of its own canonical form.
+- Added `chainTerms`, restating every launch parameter in the units a contract constructor takes: wei as decimal strings, whole-second Unix timestamps, basis points, and supply in base units.
+- Published the exit deadline, which the escrow has enforced since last week but the manifest had no field for.
+- Moved launch timestamps to second precision so the ISO string and the integer describe the same instant exactly.
+- Added validation that recomputes the enforceable terms from the readable ones and rejects any manifest where the two disagree, plus commitment verification on both document kinds.
+- Pinned the produced manifest as `expected-manifest.json` and added a Foundry suite that reads it, deploys a launch round from exactly those numbers, and asserts every immutable equals the published term.
+- Added `--out` to the pipeline CLI and bumped the manifest to schema 0.3.0.
+
+### Decisions
+
+- SHA-256 rather than keccak-256. Nothing recomputes the digest on-chain, so the deciding factor was that SHA-256 ships with Node and keccak would mean a dependency. Both are available as EVM precompiles if on-chain verification is ever wanted.
+- Canonicalization accepts only safe integers. Floating point has several valid textual forms per value, and no manifest field needs a fraction, since amounts are published as base-unit strings precisely so they stay exact.
+- Terms are published twice rather than only in chain units. "1 BNB" is what a reader understands and `1000000000000000000` is what gets enforced; publishing both and checking they agree serves both audiences without asking either to convert by hand.
+- The executor address and chain ID stay out of the manifest. They are deployment details that do not exist when the manifest is written, and publishing an unverifiable value is worse than publishing nothing.
+- Commitment verification runs last in validation, so an edited document reports the specific term that is wrong rather than only that something changed.
+
+### Notes
+
+The first attempt at generating the pinned fixture piped the pipeline's output through a shell, which re-encoded it and turned every non-ASCII character in the topic text into question marks. The committed digest was computed before that happened, so the file arrived with a hash that did not match its own contents. The commitment caught the corruption on the first test run, which is a reassuring way to find out it works. It is also why the CLI now writes files itself through `--out` instead of relying on redirection.
+
+Tampering with the fixture's `walletCapWei` was checked to make the contract suite fail, on the same reasoning as the invariant reachability probes: a cross-check that cannot fail is not a check.
+
+### Known limitations
+
+- Nothing signs the commitment. It proves a document was not edited after the fact, not who produced it. That needs agent identity and belongs with ERC-8004.
+- The manifest still has no formal JSON Schema; validation is hand-written.
+- Canonicalization is a project-local scheme rather than RFC 8785 JCS. It is narrower on purpose, but it means an outside implementation has to follow this repository's rules rather than a standard.
+- The executor remains a stub, nothing is deployed, and there has been no security review.
+
 ## 2026-09-15 — Contributor Exit Window
 
 ### Completed

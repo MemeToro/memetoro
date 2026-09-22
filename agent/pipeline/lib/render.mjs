@@ -65,6 +65,7 @@ function renderLaunchManifest(manifest) {
     `| Minimum threshold | ${funding.minimumThreshold} ${funding.asset} |`,
     `| Maximum threshold | ${funding.maximumThreshold} ${funding.asset} |`,
     `| Funding opens | ${funding.startTime} |`,
+    `| Withdrawals close | ${funding.exitDeadline} |`,
     `| Funding closes | ${funding.endTime} |`,
     "",
     "## Launch conditions",
@@ -78,6 +79,7 @@ function renderLaunchManifest(manifest) {
     "",
     ...renderProvenance(provenance),
     "",
+    ...renderCommitment(manifest.commitment),
   ].join("\n");
 }
 
@@ -101,7 +103,23 @@ function renderNoProposal(record) {
     "",
     ...renderProvenance(record.provenance),
     "",
+    ...renderCommitment(record.commitment),
   ].join("\n");
+}
+
+/**
+ * Publishing the digest is what lets a reader check this document against the
+ * hash a launch round was deployed with, rather than trusting that they match.
+ */
+function renderCommitment(commitment) {
+  return [
+    "## Commitment",
+    "",
+    `- Digest: \`${commitment.hash}\``,
+    `- Algorithm: ${commitment.algorithm} over ${commitment.canonicalization}`,
+    "- Covers this document with the commitment block removed",
+    "",
+  ];
 }
 
 function renderEvidenceLine(entry) {

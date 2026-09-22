@@ -51,6 +51,48 @@ export function addHours(timestamp, hours) {
   return new Date(Date.parse(timestamp) + hours * 60 * 60 * 1000).toISOString();
 }
 
+/**
+ * Drops sub-second precision so a timestamp has one exact representation both
+ * as an ISO string and as the whole-second integer a contract stores.
+ */
+export function floorToSecond(timestamp) {
+  const milliseconds = Date.parse(timestamp);
+  if (Number.isNaN(milliseconds)) {
+    throw new Error(`Not a timestamp: ${timestamp}`);
+  }
+  return new Date(milliseconds - (milliseconds % 1000)).toISOString();
+}
+
+export function toUnixSeconds(timestamp) {
+  const milliseconds = Date.parse(timestamp);
+  if (Number.isNaN(milliseconds)) {
+    throw new Error(`Not a timestamp: ${timestamp}`);
+  }
+  if (milliseconds % 1000 !== 0) {
+    throw new Error(`Timestamp must be whole seconds to convert exactly: ${timestamp}`);
+  }
+  return milliseconds / 1000;
+}
+
+/**
+ * Converts a decimal amount to integer base units through string arithmetic.
+ * Doing this with numbers would round a value such as 0.1 before it ever
+ * reached the manifest, and published funding terms have to be exact.
+ */
+export function toBaseUnits(amount, decimals) {
+  const value = requiredString(amount, "amount");
+  if (!/^\d+(\.\d+)?$/.test(value)) {
+    throw new Error(`Amount must be a non-negative decimal string: ${value}`);
+  }
+
+  const [whole, fraction = ""] = value.split(".");
+  if (fraction.length > decimals) {
+    throw new Error(`Amount has more than ${decimals} decimal places: ${value}`);
+  }
+
+  return BigInt(`${whole}${fraction.padEnd(decimals, "0")}`).toString();
+}
+
 export function unique(values) {
   return [...new Set(values)];
 }

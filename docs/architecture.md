@@ -38,9 +38,13 @@ Token creation and liquidity provision sit behind an executor interface rather t
 
 ## Manifest commitment
 
-The escrow stores a hash of the manifest it was created for. It never interprets that hash; it exists so anyone can check that the terms enforced on-chain match the document published off-chain, which is what turns "published terms cannot be silently changed" from a stated intention into something a reader can verify.
+Every published document carries a digest of its own canonical form, and a launch round stores that digest on-chain as the manifest it was created for. The escrow never interprets it. It exists so anyone can check that the round was deployed against the exact proposal that was published, reasoning and rejected shortlist included, which is what turns "published terms cannot be silently changed" from a stated intention into something a reader can verify.
 
-The two halves are not yet joined. The escrow accepts a hash, but the agent does not yet produce a canonical serialization of a manifest to hash, so nothing currently guarantees the two describe the same round. Closing that gap requires a byte-exact canonical form that both sides agree on.
+Canonicalization is the load-bearing part. Sorted keys, no insignificant whitespace, preserved array order, and integers only: each rule removes a way for two readers to hash the same document differently and reach opposite conclusions about whether it had been edited.
+
+Verification happens off-chain, because a contract cannot parse a proposal. A reader canonicalizes the published document, hashes it, and compares with the committed value, then reads the round's immutables and compares them with the manifest's enforceable terms. The manifest publishes those terms twice for that reason: once as a person reads them and once as the integers the constructor takes, with validation rejecting any document where the two disagree.
+
+The correspondence is tested rather than asserted. The contract suite loads the manifest the pipeline publishes and deploys a round from exactly those numbers, so a change to either half that breaks the mapping fails a test instead of surfacing at a deployment.
 
 ## Public interface
 

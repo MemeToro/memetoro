@@ -16,7 +16,7 @@ Unlike a normal AI meme generator, MemeToro does more than create an image or a 
 
 ## Current status
 
-MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable, and a first draft of the fair-launch funding escrow with its test suite. It does not contain an hourly autonomous service, a deployed contract, or a working end-to-end launch.
+MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable, and a first draft of the fair-launch funding escrow with its test suite. Each published manifest commits to a digest of itself, and the contract suite deploys a launch round from that manifest to check that the enforced terms match the published ones. It does not contain an hourly autonomous service, a deployed contract, or a working end-to-end launch.
 
 > [!WARNING]
 > The contracts are an unaudited draft, are not deployed on any network, and have had no security review. Do not use this repository to collect or manage real funds.
@@ -38,7 +38,6 @@ MemeToro is at the **early MVP and architecture stage**. This repository contain
 
 ## Roadmap
 
-- Define a canonical manifest serialization and hash, so a round's on-chain commitment can be checked against its published manifest.
 - Implement token creation and liquidity provision behind the escrow's executor interface.
 - Define a formal schema for the launch manifest.
 - Add token symbol collision checking and evidence liveness verification.

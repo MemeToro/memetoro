@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import { canonicalize, digest, verifyCommitment } from "../lib/canonical.mjs";
 import { validateConcept } from "../lib/concept.mjs";
 import {
   buildLaunchManifest,
@@ -12,7 +13,7 @@ import {
 } from "../lib/manifest.mjs";
 import { renderMarkdown } from "../lib/render.mjs";
 import { normalizeSignals } from "../lib/signals.mjs";
-import { classifyLink } from "../lib/util.mjs";
+import { classifyLink, toBaseUnits } from "../lib/util.mjs";
 
 const GENERATED_AT = "2026-08-10T13:56:04.850Z";
 
@@ -364,4 +365,148 @@ test("markdown rendering explains a decline", async () => {
 
 test("rendering refuses an unknown document kind", () => {
   assert.throws(() => renderMarkdown({ kind: "memetoro.something-else" }), /unknown document kind/);
+});
+
+test("canonical form ignores key order and formatting", () => {
+  const a = { b: 1, a: { d: [1, 2], c: "x" } };
+  const b = { a: { c: "x", d: [1, 2] }, b: 1 };
+
+  assert.equal(canonicalize(a), canonicalize(b));
+  assert.equal(canonicalize(a), '{"a":{"c":"x","d":[1,2]},"b":1}');
+  assert.equal(digest(a), digest(b));
+});
+
+test("canonical form keeps array order, which carries meaning", () => {
+  assert.notEqual(canonicalize({ e: [1, 2] }), canonicalize({ e: [2, 1] }));
+});
+
+test("canonical form refuses values with no single representation", () => {
+  assert.throws(() => canonicalize({ a: 1.5 }), /safe integers/);
+  assert.throws(() => canonicalize({ a: Number.NaN }), /safe integers/);
+  assert.throws(() => canonicalize({ a: 2 ** 53 }), /safe integers/);
+  assert.throws(() => canonicalize({ a: undefined }), /cannot represent/);
+  assert.throws(() => canonicalize({ a: 1n }), /cannot represent/);
+});
+
+test("the commitment covers every field except itself", async () => {
+  const { manifest } = await buildValidManifest();
+
+  assert.equal(manifest.commitment.algorithm, "sha256");
+  assert.match(manifest.commitment.hash, /^0x[0-9a-f]{64}$/);
+  assert.ok(verifyCommitment(manifest));
+
+  const { commitment, ...body } = manifest;
+  assert.equal(digest(body), commitment.hash);
+});
+
+test("any edit to a committed document breaks its commitment", async () => {
+  const { window, manifest } = await buildValidManifest();
+
+  for (const edit of [
+    (doc) => {
+      doc.concept.summary = `${doc.concept.summary} Buy now.`;
+    },
+    (doc) => {
+      doc.evidence[0].url = "https://attacker.example/payload";
+    },
+    (doc) => {
+      doc.selection.candidates.pop();
+    },
+    (doc) => {
+      doc.provenance.generator = "someone else";
+    },
+  ]) {
+    const tampered = structuredClone(manifest);
+    edit(tampered);
+    assert.equal(verifyCommitment(tampered), false);
+  }
+
+  // Swapping the digest for one of a different document fails the same way.
+  const forged = structuredClone(manifest);
+  forged.commitment.hash = digest({ not: "this document" });
+  assert.equal(verifyCommitment(forged), false);
+  assert.throws(() => validateLaunchManifest(forged, window.signals), /does not match/);
+});
+
+test("a decline record is committed too", async () => {
+  const window = await loadWindow("sensitive-only-signals.json");
+  const concept = validateConcept(await loadFixture("decline-response.json"), window.signals);
+  const record = validateNoProposalRecord(
+    buildNoProposalRecord(buildContext(concept, window)),
+    window.signals,
+  );
+
+  assert.ok(verifyCommitment(record));
+});
+
+test("chain terms restate the published terms in the units a contract takes", async () => {
+  const { manifest } = await buildValidManifest();
+  const { funding, token, chainTerms } = manifest;
+
+  assert.equal(chainTerms.walletCapWei, "1000000000000000000");
+  assert.equal(chainTerms.minimumThresholdWei, "10000000000000000000");
+  assert.equal(chainTerms.maximumThresholdWei, "50000000000000000000");
+  assert.equal(chainTerms.tokenTotalSupplyBaseUnits, "1000000000000000000000000000");
+  assert.equal(chainTerms.contributorAllocationBps, token.contributorAllocationPercent * 100);
+  assert.equal(chainTerms.contributorAllocationBps + chainTerms.liquidityAllocationBps, 10_000);
+
+  // Every timestamp has one meaning in both representations.
+  assert.equal(chainTerms.startTime, Date.parse(funding.startTime) / 1000);
+  assert.equal(chainTerms.endTime, Date.parse(funding.endTime) / 1000);
+  assert.equal(chainTerms.exitDeadline, Date.parse(funding.exitDeadline) / 1000);
+});
+
+test("the exit deadline sits inside the funding window", async () => {
+  const { window, manifest } = await buildValidManifest();
+  const { funding } = manifest;
+
+  assert.ok(Date.parse(funding.exitDeadline) > Date.parse(funding.startTime));
+  assert.ok(Date.parse(funding.exitDeadline) <= Date.parse(funding.endTime));
+
+  for (const exitDeadline of [funding.startTime, "2030-01-01T00:00:00.000Z"]) {
+    const tampered = structuredClone(manifest);
+    tampered.funding.exitDeadline = exitDeadline;
+    assert.throws(() => validateLaunchManifest(tampered, window.signals), /exit deadline/);
+  }
+});
+
+test("validation catches chain terms that disagree with the readable terms", async () => {
+  const { window, manifest } = await buildValidManifest();
+
+  for (const edit of [
+    (doc) => {
+      doc.chainTerms.walletCapWei = "100000000000000000000";
+    },
+    (doc) => {
+      doc.chainTerms.exitDeadline += 3600;
+    },
+    (doc) => {
+      doc.chainTerms.contributorAllocationBps = 9000;
+    },
+  ]) {
+    const tampered = structuredClone(manifest);
+    edit(tampered);
+    assert.throws(() => validateLaunchManifest(tampered, window.signals), /chainTerms/);
+  }
+});
+
+test("amounts convert to base units without floating point", () => {
+  assert.equal(toBaseUnits("1", 18), "1000000000000000000");
+  assert.equal(toBaseUnits("0.1", 18), "100000000000000000");
+  assert.equal(toBaseUnits("0.000000000000000001", 18), "1");
+  assert.equal(toBaseUnits("1000000000", 18), "1000000000000000000000000000");
+  assert.equal(toBaseUnits("0", 18), "0");
+
+  assert.throws(() => toBaseUnits("0.0000000000000000001", 18), /decimal places/);
+  assert.throws(() => toBaseUnits("-1", 18), /non-negative/);
+  assert.throws(() => toBaseUnits("1e18", 18), /non-negative/);
+});
+
+test("the published manifest fixture matches what the pipeline produces", async () => {
+  const { manifest } = await buildValidManifest();
+  const published = await loadFixture("expected-manifest.json");
+
+  // The contract suite deploys a round from this exact file, so a change to
+  // the pipeline that is not reflected in it would let the two halves drift.
+  assert.deepEqual(manifest, published);
 });

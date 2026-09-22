@@ -82,9 +82,19 @@ async function main() {
       ? validateNoProposalRecord(buildNoProposalRecord(context), window.signals)
       : validateLaunchManifest(buildLaunchManifest(context), window.signals);
 
-  console.log(
-    options.format === "markdown" ? renderMarkdown(document) : JSON.stringify(document, null, 2),
-  );
+  const output =
+    options.format === "markdown" ? renderMarkdown(document) : JSON.stringify(document, null, 2);
+
+  // Writing the file directly rather than relying on shell redirection, which
+  // re-encodes on some platforms and would corrupt non-ASCII topic text. A
+  // published document whose bytes changed in transit no longer matches its
+  // own commitment.
+  if (options.outputPath) {
+    await writeFile(resolve(process.cwd(), options.outputPath), `${output}\n`, "utf8");
+    return;
+  }
+
+  console.log(output);
 }
 
 function parseArguments(argumentsList) {
@@ -95,6 +105,7 @@ function parseArguments(argumentsList) {
     scenario: "propose",
     format: "json",
     saveConceptPath: "",
+    outputPath: "",
   };
 
   for (let index = 0; index < argumentsList.length; index += 1) {
@@ -112,6 +123,9 @@ function parseArguments(argumentsList) {
       index += 1;
     } else if (argument === "--save-concept") {
       options.saveConceptPath = argumentsList[index + 1] ?? "";
+      index += 1;
+    } else if (argument === "--out") {
+      options.outputPath = argumentsList[index + 1] ?? "";
       index += 1;
     } else if (argument === "--help" || argument === "-h") {
       options.help = true;
@@ -150,6 +164,7 @@ function printHelp() {
   node run.mjs --dry-run [--scenario propose|decline] [--format json|markdown]
   node run.mjs --signals <trend-signals.json> [--format json|markdown]
   node run.mjs --signals <path> --save-concept <path>
+  node run.mjs --dry-run --out <path>
   <collector command> | node run.mjs --signals -`);
 }
 
