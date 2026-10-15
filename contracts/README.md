@@ -96,12 +96,15 @@ cast rpc evm_increaseTime 601 --rpc-url http://127.0.0.1:8545
 cast rpc evm_mine --rpc-url http://127.0.0.1:8545
 ```
 
-On testnet, use a Foundry keystore (`cast wallet import`) holding faucet BNB. `--verify` publishes the source, so the explorer's contract page can make every call above:
+On testnet, use a wallet that only ever holds faucet BNB, either through a Foundry keystore (`cast wallet import`) or `DEMO_DEPLOYER_PRIVATE_KEY` in the root `.env`. `--verify` publishes the source, so the explorer's contract page can make every call above:
 
 ```sh
 forge script script/DeployDemoRound.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 \
-  --broadcast --account <keystore> --verify --etherscan-api-key <key>
+  --broadcast --slow --legacy --with-gas-price 100000000 --account <keystore> \
+  --verify --etherscan-api-key <key>
 ```
+
+BNB Smart Chain testnet rejects any transaction tipping less than 0.1 gwei, and Forge's own fee estimate tips 1 wei there, so the gas price is set explicitly. Add `--legacy --gas-price 100000000` to `cast send` on testnet for the same reason.
 
 Funding opens at deployment. The terms can be overridden through the environment:
 

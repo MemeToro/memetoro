@@ -9,6 +9,8 @@
 - Published the escrow's ABI at `contracts/abi/FairLaunchEscrow.json`, with a Node exporter and a test that fails when the file falls behind the compiled contract.
 - Added `DeployDemoRound.s.sol`, which deploys a short round through the mock executor for testing an interface and refuses every chain except Anvil and BNB Smart Chain testnet.
 - Walked demo rounds on Anvil through every path an interface has to render: joining, the wallet cap rejection, withdrawing, the lock, a late contribution, launch by an unrelated address, claiming, a short round's refund, and a round that has not opened yet.
+- Repeated the walk on BNB Smart Chain testnet with three short rounds, covering a launch with pro-rata claims, a round that fell short and refunded, and a round whose launch kept failing until its grace period expired and refunds opened.
+- Deployed a long-lived demo round on testnet for the website team, with its source verified so it can also be used from the explorer.
 - Documented how to make every call without the website.
 
 ### Decisions
@@ -18,18 +20,29 @@
 - `contributableOf` returns zero while funding is closed instead of reporting only cap room, so whether someone can join, and with how much, is a single read.
 - `contribute` keeps its own checks and specific errors rather than calling the new view, so no code that moves funds changed.
 - The demo script allows BSC testnet as well as Anvil, so a page on the public site can be tried by people who are not running a local node. Mainnet is refused outright, and demo rounds are not a deployment of the launch contracts, because their executor is a mock.
-- No documented command contains a private key. Anvil commands use its unlocked accounts and testnet commands use a Foundry keystore.
+- No documented command contains a private key. Anvil commands use its unlocked accounts, and testnet commands use a Foundry keystore or a testnet-only key in the gitignored root `.env`.
 
 ### Notes
 
 The drift test caught a real stale file on its first run. A build failed partway through this work, the exporter copied the old artifact that was still on disk, and the published ABI was missing both new views. The test reported it immediately, which is the failure it exists for.
+
+The first testnet deployment broadcast nothing. Forge estimated a priority fee of 1 wei, BNB Smart Chain testnet rejects anything below 0.1 gwei, and every attempt was refused before reaching a block. The documented commands now set the gas price explicitly. The node's own `eth_maxPriorityFeePerGas` reports 0.1 gwei, so wallets that ask it should be unaffected, but the website should still be tried against testnet rather than only Anvil.
+
+Testnet demo rounds:
+
+| Round | Address | State it shows |
+| --- | --- | --- |
+| Long-lived, verified | `0x0f53D921Fe0b2e16B30db59131749b79E2283BC8` | Open until 2026-10-22, funding until 2026-10-25 |
+| Launched | `0x7D8c514DA885eA8321edB9e7AAA638367481F8B2` | Launched, both contributors claimed |
+| Fell short | `0xc9f71010ff018C46677289a9c128CA01b9eDaBe5` | Refunds open, fully refunded |
+| Never launched | `0xaFf8Dd08B8Ba29Eee1a7929b53814295498EBad8` | Refunds open after the grace period |
 
 ### Known limitations
 
 - There is no page yet. The frontend is built in the website repository against what this entry added.
 - The demo executor keeps the raise and lets anyone change its behaviour, so a demo round tests the interface, not a launch.
 - There is no factory or registry, so an interface has to be given a round's address.
-- The executor is still a stub, the launch contracts are not deployed, and there has been no security review.
+- The executor is still a stub, no round with a real launch step has been deployed anywhere, and there has been no security review.
 
 ## 2026-09-22 — Manifest Commitment
 
