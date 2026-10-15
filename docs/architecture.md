@@ -50,6 +50,8 @@ The correspondence is tested rather than asserted. The contract suite loads the 
 
 The public interface is the website or application through which users inspect proposals and manifests, contribute to funding rounds, finalize eligible launches, claim tokens, and request refunds. It is a convenience layer rather than a trusted part of execution.
 
+The interface holds no rules of its own. Every action it offers is gated by an escrow view that answers whether that action is available now, and the most anyone can contribute is read from the contract rather than computed from the caps, so the page cannot disagree with the contract about timing or limits. It is built against the ABI published alongside the contracts and talks to the chain directly with no backend in the path. If the site is unavailable, the same calls can be made from a block explorer or the command line.
+
 ```mermaid
 flowchart LR
     A[Worldwide news] --> B[Data-source connectors]
@@ -77,6 +79,7 @@ flowchart LR
 - Published launch terms cannot be silently changed.
 - A round commits to the manifest it was published under.
 - Contributions are recoverable whenever a launch does not happen.
+- The interface reads the rules from the contract instead of restating them.
 - Contributors can leave until the published exit deadline, and no launch happens before it.
 - The rejected shortlist is published alongside the winner.
 - Declining to propose is a valid outcome.

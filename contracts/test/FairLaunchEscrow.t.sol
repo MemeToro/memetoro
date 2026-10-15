@@ -312,6 +312,96 @@ contract FairLaunchEscrowTest is Test {
         assertFalse(sent, "escrow must not accept bare transfers");
     }
 
+    function test_isContributableTracksTheFundingWindow() public {
+        assertFalse(escrow.isContributable(), "closed before funding opens");
+
+        vm.warp(startTime);
+        assertTrue(escrow.isContributable());
+
+        vm.warp(exitDeadline);
+        assertTrue(escrow.isContributable(), "funding outlasts the exit window");
+
+        vm.warp(uint256(endTime) - 1);
+        assertTrue(escrow.isContributable(), "open until the last second");
+
+        vm.warp(endTime);
+        assertFalse(escrow.isContributable());
+    }
+
+    function test_isContributableClosesWhenAFullRoundLaunchesEarly() public {
+        vm.warp(startTime);
+        for (uint256 i = 0; i < MAXIMUM / WALLET_CAP; i++) {
+            address contributor = address(uint160(0x5000 + i));
+            vm.deal(contributor, WALLET_CAP);
+            _contribute(contributor, WALLET_CAP);
+        }
+        vm.warp(exitDeadline);
+        escrow.finalize();
+
+        assertLt(block.timestamp, endTime);
+        assertFalse(escrow.isContributable(), "a launched round takes no more money");
+        assertEq(escrow.contributableOf(alice), 0);
+    }
+
+    function test_contributableOfIsTheSmallerOfWalletAndRoundRoom() public {
+        assertEq(escrow.contributableOf(alice), 0, "nothing before funding opens");
+
+        vm.warp(startTime);
+        assertEq(escrow.contributableOf(alice), WALLET_CAP);
+
+        _contribute(alice, 0.4 ether);
+        assertEq(escrow.contributableOf(alice), 0.6 ether, "wallet room binds");
+
+        // Leave the round 0.3 ether short of its hard cap, below bob's wallet room.
+        for (uint256 i = 0; i < MAXIMUM / WALLET_CAP - 1; i++) {
+            address contributor = address(uint160(0x6000 + i));
+            vm.deal(contributor, WALLET_CAP);
+            _contribute(contributor, WALLET_CAP);
+        }
+        _contribute(carol, 0.3 ether);
+        assertEq(MAXIMUM - escrow.totalContributed(), 0.3 ether);
+        assertEq(escrow.contributableOf(bob), 0.3 ether, "round room binds");
+
+        vm.warp(endTime);
+        assertEq(escrow.contributableOf(bob), 0, "nothing after funding closes");
+    }
+
+    /// @dev The view is only useful to an interface if it agrees with the
+    ///      function it describes, so the offered maximum must succeed and one
+    ///      wei more must revert from any reachable funding state.
+    function testFuzz_contributableOfIsExactlyWhatContributeAccepts(
+        uint256 fullWallets,
+        uint256 priorContribution,
+        uint256 timeSeed
+    ) public {
+        fullWallets = bound(fullWallets, 0, MAXIMUM / WALLET_CAP);
+        priorContribution = bound(priorContribution, 0, WALLET_CAP);
+
+        vm.warp(startTime);
+        for (uint256 i = 0; i < fullWallets; i++) {
+            address contributor = address(uint160(0x7000 + i));
+            vm.deal(contributor, WALLET_CAP);
+            _contribute(contributor, WALLET_CAP);
+        }
+        if (priorContribution > 0 && escrow.totalContributed() + priorContribution <= MAXIMUM) {
+            _contribute(alice, priorContribution);
+        }
+        vm.warp(bound(timeSeed, startTime, uint256(endTime) + 1 hours));
+
+        uint256 room = escrow.contributableOf(alice);
+        vm.deal(alice, room + 1);
+
+        vm.expectRevert();
+        _contribute(alice, room + 1);
+
+        if (room > 0) {
+            uint256 before = escrow.contributionOf(alice);
+            _contribute(alice, room);
+            assertEq(escrow.contributionOf(alice), before + room);
+            assertEq(escrow.contributableOf(alice), 0, "the offered maximum fills the room");
+        }
+    }
+
     // ---------------------------------------------------------- finalizing
 
     function test_notFinalizableBeforeEndOrBelowMinimum() public {

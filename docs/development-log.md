@@ -1,5 +1,36 @@
 # Development Log
 
+## 2026-10-15 — Funding Interface Groundwork
+
+### Completed
+
+- Added `isContributable` and `contributableOf` to `FairLaunchEscrow`. Joining was the one action with no view saying whether it was available, so an interface would have had to restate the funding window and both caps. Now every action has one, and the maximum contribution is read from the contract.
+- Added a fuzz test holding `contributableOf` to `contribute` itself, so sending the offered amount always succeeds and one wei more always reverts, plus an invariant that the offer never takes an address or the round past a cap and is zero once a round stops collecting or can launch.
+- Published the escrow's ABI at `contracts/abi/FairLaunchEscrow.json`, with a Node exporter and a test that fails when the file falls behind the compiled contract.
+- Added `DeployDemoRound.s.sol`, which deploys a short round through the mock executor for testing an interface and refuses every chain except Anvil and BNB Smart Chain testnet.
+- Walked demo rounds on Anvil through every path an interface has to render: joining, the wallet cap rejection, withdrawing, the lock, a late contribution, launch by an unrelated address, claiming, a short round's refund, and a round that has not opened yet.
+- Documented how to make every call without the website.
+
+### Decisions
+
+- The website lives in a separate repository, so this one publishes what a page is built against (the ABI, the views, and rounds to test on) rather than containing the page.
+- Separate views rather than an on-chain phase enum. Whether each action is available varies independently: a round stays open to contributions after it stops allowing withdrawals, and a full round can become launchable before its end time. Five answers describe that without a state machine that would have to be kept in step with the rules.
+- `contributableOf` returns zero while funding is closed instead of reporting only cap room, so whether someone can join, and with how much, is a single read.
+- `contribute` keeps its own checks and specific errors rather than calling the new view, so no code that moves funds changed.
+- The demo script allows BSC testnet as well as Anvil, so a page on the public site can be tried by people who are not running a local node. Mainnet is refused outright, and demo rounds are not a deployment of the launch contracts, because their executor is a mock.
+- No documented command contains a private key. Anvil commands use its unlocked accounts and testnet commands use a Foundry keystore.
+
+### Notes
+
+The drift test caught a real stale file on its first run. A build failed partway through this work, the exporter copied the old artifact that was still on disk, and the published ABI was missing both new views. The test reported it immediately, which is the failure it exists for.
+
+### Known limitations
+
+- There is no page yet. The frontend is built in the website repository against what this entry added.
+- The demo executor keeps the raise and lets anyone change its behaviour, so a demo round tests the interface, not a launch.
+- There is no factory or registry, so an interface has to be given a round's address.
+- The executor is still a stub, the launch contracts are not deployed, and there has been no security review.
+
 ## 2026-09-22 — Manifest Commitment
 
 ### Completed

@@ -222,6 +222,21 @@ contract FairLaunchEscrowInvariantTest is Test {
         }
     }
 
+    /// @dev What the escrow offers an interface as the maximum contribution can
+    ///      never take anyone past a cap, and nothing is offered once the round
+    ///      has stopped collecting or is ready to launch.
+    function invariant_contributableNeverBreaksACap() public view {
+        bool closed = !escrow.isContributable() || escrow.isFinalizable();
+        for (uint256 i = 0; i < handler.actorCount(); i++) {
+            address actor = handler.actors(i);
+            uint256 room = escrow.contributableOf(actor);
+
+            assertLe(escrow.contributionOf(actor) + room, escrow.walletCap());
+            assertLe(escrow.totalContributed() + room, escrow.maximumThreshold());
+            if (closed) assertEq(room, 0);
+        }
+    }
+
     /// @dev Before a launch the contract holds exactly what it still owes.
     ///      After one it holds nothing, because the whole raise goes to liquidity.
     function invariant_escrowHoldsExactlyWhatItOwes() public view {

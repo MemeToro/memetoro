@@ -16,7 +16,7 @@ Unlike a normal AI meme generator, MemeToro does more than create an image or a 
 
 ## Current status
 
-MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable, and a first draft of the fair-launch funding escrow with its test suite. Each published manifest commits to a digest of itself, and the contract suite deploys a launch round from that manifest to check that the enforced terms match the published ones. It does not contain an hourly autonomous service, a deployed contract, or a working end-to-end launch.
+MemeToro is at the **early MVP and architecture stage**. This repository contains project documentation, a dependency-free connector for worldwide-news and X trend signals, a tested pipeline that turns those signals into one validated draft manifest, publishes the candidate shortlist it rejected, and declines when nothing is suitable, and a first draft of the fair-launch funding escrow with its test suite, its published ABI, and a script that deploys a throwaway round for testing an interface. Each published manifest commits to a digest of itself, and the contract suite deploys a launch round from that manifest to check that the enforced terms match the published ones. It does not contain an hourly autonomous service, a deployed contract, or a working end-to-end launch.
 
 > [!WARNING]
 > The contracts are an unaudited draft, are not deployed on any network, and have had no security review. Do not use this repository to collect or manage real funds.
@@ -28,7 +28,7 @@ MemeToro is at the **early MVP and architecture stage**. This repository contain
 ├── agent/        # Agent design, data sources, and pipeline MVP
 │   ├── data-sources/
 │   └── pipeline/
-├── contracts/    # Fair-launch escrow draft and its tests
+├── contracts/    # Fair-launch escrow draft, tests, published ABI, and demo script
 ├── docs/         # Architecture and development history
 ├── manifests/    # Manifest documentation and examples
 ├── CONTRIBUTING.md
@@ -39,6 +39,7 @@ MemeToro is at the **early MVP and architecture stage**. This repository contain
 ## Roadmap
 
 - Implement token creation and liquidity provision behind the escrow's executor interface.
+- Build the public funding page against the published ABI.
 - Define a formal schema for the launch manifest.
 - Add token symbol collision checking and evidence liveness verification.
 - Add market signals, visual identity, and hourly scheduling to the agent.

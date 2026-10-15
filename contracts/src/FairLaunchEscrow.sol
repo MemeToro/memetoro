@@ -274,6 +274,20 @@ contract FairLaunchEscrow {
         if (!IERC20Minimal(token).transfer(msg.sender, amount)) revert ClaimTransferFailed();
     }
 
+    /// @notice Native value the account can currently contribute.
+    /// @dev The smaller of the account's room under the wallet cap and the
+    ///      round's room under the hard cap, or zero while funding is closed.
+    ///      Contributing exactly this amount succeeds and one wei more reverts,
+    ///      so an interface can offer it as the maximum without restating the
+    ///      cap rules.
+    function contributableOf(address account) public view returns (uint256) {
+        if (!isContributable()) return 0;
+
+        uint256 walletRoom = walletCap - contributionOf[account];
+        uint256 roundRoom = maximumThreshold - totalContributed;
+        return walletRoom < roundRoom ? walletRoom : roundRoom;
+    }
+
     /// @notice Tokens the account can currently claim.
     function claimableOf(address account) public view returns (uint256) {
         if (!finalized || hasClaimed[account]) return 0;
@@ -296,6 +310,12 @@ contract FairLaunchEscrow {
         if (block.timestamp >= finalizeDeadline) return false;
 
         return block.timestamp >= endTime || totalContributed >= maximumThreshold;
+    }
+
+    /// @notice Whether the round is currently accepting contributions.
+    /// @dev Says nothing about room under the caps; `contributableOf` does.
+    function isContributable() public view returns (bool) {
+        return !finalized && block.timestamp >= startTime && block.timestamp < endTime;
     }
 
     /// @notice Whether the caller's contribution can currently be withdrawn.
