@@ -16,7 +16,7 @@ Two properties keep the agent honest about its own reasoning. It publishes every
 
 ## Manifest
 
-The launch manifest is the public, machine-readable record for a proposal. It contains the meme concept, market reasoning, risk assessment, cited evidence with its recorded context, countable source facts, the candidate selection record, token parameters, funding rules, launch conditions, and provenance. Once funding starts, its committed launch terms must not be silently changed.
+The launch manifest is the public, machine-readable record for a proposal. It contains the meme concept, the generated image and the prompt that produced it, market reasoning, risk assessment, cited evidence with its recorded context, countable source facts, the candidate selection record, token parameters, funding rules, launch conditions, and provenance. Once funding starts, its committed launch terms must not be silently changed.
 
 The manifest stays canonical and machine-readable. Readable views are produced from it by a deterministic rendering function rather than written separately, so the page a contributor reads cannot state terms that differ from the ones the contracts would enforce.
 
@@ -52,6 +52,8 @@ The public interface is the website or application through which users inspect p
 
 The interface holds no rules of its own. Every action it offers is gated by an escrow view that answers whether that action is available now, and the most anyone can contribute is read from the contract rather than computed from the caps, so the page cannot disagree with the contract about timing or limits. It is built against the ABI published alongside the contracts and talks to the chain directly with no backend in the path. If the site is unavailable, the same calls can be made from a block explorer or the command line.
 
+Rounds are created by a factory, not by hand. The factory asks the official ERC-8004 identity registry which wallet acts for an agent, deploys an escrow from the published terms, and stores the public URI of the manifest. A page lists rounds and declines by reading that factory. The image, reasoning, and rejected shortlist live in the published files, not on-chain.
+
 ```mermaid
 flowchart LR
     A[Worldwide news] --> B[Data-source connectors]
@@ -64,7 +66,9 @@ flowchart LR
     P --> D[Launch manifest]
     D --> R[Rendered public view]
     D --> H[Manifest hash commitment]
-    H --> E[Fair-launch escrow]
+    H --> FCT[Round factory]
+    ID[ERC-8004 identity] --> FCT
+    FCT --> E[Fair-launch escrow]
     E --> F[Token and liquidity launch]
     E --> Y[Refunds]
 ```
@@ -80,6 +84,7 @@ flowchart LR
 - A round commits to the manifest it was published under.
 - Contributions are recoverable whenever a launch does not happen.
 - The interface reads the rules from the contract instead of restating them.
+- A listed round names the ERC-8004 agent that proposed it.
 - Contributors can leave until the published exit deadline, and no launch happens before it.
 - The rejected shortlist is published alongside the winner.
 - Declining to propose is a valid outcome.

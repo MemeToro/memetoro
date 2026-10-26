@@ -1,4 +1,5 @@
 import { commit, verifyCommitment } from "./canonical.mjs";
+import { IMAGE_FORMATS, MAX_IMAGE_BYTES } from "./image.mjs";
 import { summarizeEvidence } from "./signals.mjs";
 import {
   addHours,
@@ -9,11 +10,22 @@ import {
   toUnixSeconds,
 } from "./util.mjs";
 
-export const SCHEMA_VERSION = "0.3.0";
+export const SCHEMA_VERSION = "0.4.0";
 export const LAUNCH_MANIFEST_KIND = "memetoro.launch-manifest";
 export const NO_PROPOSAL_KIND = "memetoro.no-proposal";
 
-export const LAUNCH_POLICY = Object.freeze({
+/**
+ * Where published files sit relative to the publication root. A manifest
+ * refers to its image by a URI relative to its own location, so any host that
+ * keeps this layout serves a working proposal without rewriting it.
+ */
+export const PUBLICATION_LAYOUT = Object.freeze({
+  manifests: "manifests",
+  noProposals: "no-proposals",
+  images: "images",
+});
+
+const SHARED_POLICY = Object.freeze({
   totalSupply: "1000000000",
   tokenDecimals: 18,
   contributorAllocationPercent: 50,
@@ -21,14 +33,35 @@ export const LAUNCH_POLICY = Object.freeze({
   insiderAllocationPercent: 0,
   fundingAsset: "BNB",
   fundingAssetDecimals: 18,
-  walletCap: "1",
-  minimumThreshold: "10",
-  maximumThreshold: "50",
   startDelayHours: 1,
   fundingDurationHours: 24,
   exitWindowHours: 12,
   finalizeGracePeriodHours: 168,
 });
+
+export const LAUNCH_POLICIES = Object.freeze({
+  standard: Object.freeze({
+    ...SHARED_POLICY,
+    walletCap: "1",
+    minimumThreshold: "10",
+    maximumThreshold: "50",
+  }),
+  // Sized for faucet-funded wallets, so a testnet round can actually reach its
+  // minimum. Everything except the amounts matches the standard policy.
+  testnet: Object.freeze({
+    ...SHARED_POLICY,
+    walletCap: "0.01",
+    minimumThreshold: "0.02",
+    maximumThreshold: "0.05",
+  }),
+});
+
+export function launchPolicy(name) {
+  if (!Object.hasOwn(LAUNCH_POLICIES, name)) {
+    throw new Error(`Unknown launch policy: ${name}`);
+  }
+  return LAUNCH_POLICIES[name];
+}
 
 const LAUNCH_CONDITIONS = Object.freeze([
   "Funding starts and ends at the published times.",
@@ -38,18 +71,27 @@ const LAUNCH_CONDITIONS = Object.freeze([
   "The maximum funding threshold is not exceeded.",
 ]);
 
-export function buildLaunchManifest({ concept, window, generatedAt, dryRun, generator }) {
+export function buildLaunchManifest({
+  concept,
+  window,
+  generatedAt,
+  dryRun,
+  generator,
+  visual,
+  policy = "standard",
+}) {
+  const terms = launchPolicy(policy);
   // Second precision throughout, so the published ISO timestamp and the
   // integer a contract stores describe the same instant exactly.
-  const startTime = floorToSecond(addHours(generatedAt, LAUNCH_POLICY.startDelayHours));
-  const endTime = addHours(startTime, LAUNCH_POLICY.fundingDurationHours);
-  const exitDeadline = addHours(startTime, LAUNCH_POLICY.exitWindowHours);
+  const startTime = floorToSecond(addHours(generatedAt, terms.startDelayHours));
+  const endTime = addHours(startTime, terms.fundingDurationHours);
+  const exitDeadline = addHours(startTime, terms.exitWindowHours);
   const citedEvidence = collectCitedEvidence(concept, window.signals);
 
   return commit({
     schemaVersion: SCHEMA_VERSION,
     kind: LAUNCH_MANIFEST_KIND,
-    status: dryRun ? "dry-run" : "draft",
+    status: manifestStatus({ dryRun, policy }),
     concept: {
       name: concept.name,
       symbol: concept.symbol,
@@ -57,24 +99,25 @@ export function buildLaunchManifest({ concept, window, generatedAt, dryRun, gene
       marketReasoning: concept.reasoning,
       riskAssessment: concept.riskAssessment,
     },
+    visual: buildVisual(visual),
     evidence: citedEvidence,
     sourceFacts: summarizeEvidence(citedEvidence),
     token: {
-      totalSupply: LAUNCH_POLICY.totalSupply,
-      contributorAllocationPercent: LAUNCH_POLICY.contributorAllocationPercent,
-      liquidityAllocationPercent: LAUNCH_POLICY.liquidityAllocationPercent,
-      insiderAllocationPercent: LAUNCH_POLICY.insiderAllocationPercent,
+      totalSupply: terms.totalSupply,
+      contributorAllocationPercent: terms.contributorAllocationPercent,
+      liquidityAllocationPercent: terms.liquidityAllocationPercent,
+      insiderAllocationPercent: terms.insiderAllocationPercent,
     },
     funding: {
-      asset: LAUNCH_POLICY.fundingAsset,
-      walletCap: LAUNCH_POLICY.walletCap,
-      minimumThreshold: LAUNCH_POLICY.minimumThreshold,
-      maximumThreshold: LAUNCH_POLICY.maximumThreshold,
+      asset: terms.fundingAsset,
+      walletCap: terms.walletCap,
+      minimumThreshold: terms.minimumThreshold,
+      maximumThreshold: terms.maximumThreshold,
       startTime,
       endTime,
       exitDeadline,
     },
-    chainTerms: buildChainTerms({ startTime, endTime, exitDeadline }),
+    chainTerms: buildChainTerms(terms, { startTime, endTime, exitDeadline }),
     execution: {
       launchConditions: [...LAUNCH_CONDITIONS],
       permissionlessFinalize: true,
@@ -111,21 +154,55 @@ export function buildNoProposalRecord({ concept, window, generatedAt, dryRun, ge
  * details that do not exist when the manifest is written, and publishing a
  * value nobody can check yet would be worse than publishing nothing.
  */
-function buildChainTerms({ startTime, endTime, exitDeadline }) {
-  const { fundingAssetDecimals, tokenDecimals } = LAUNCH_POLICY;
+function buildChainTerms(terms, { startTime, endTime, exitDeadline }) {
+  const { fundingAssetDecimals, tokenDecimals } = terms;
 
   return {
-    walletCapWei: toBaseUnits(LAUNCH_POLICY.walletCap, fundingAssetDecimals),
-    minimumThresholdWei: toBaseUnits(LAUNCH_POLICY.minimumThreshold, fundingAssetDecimals),
-    maximumThresholdWei: toBaseUnits(LAUNCH_POLICY.maximumThreshold, fundingAssetDecimals),
+    walletCapWei: toBaseUnits(terms.walletCap, fundingAssetDecimals),
+    minimumThresholdWei: toBaseUnits(terms.minimumThreshold, fundingAssetDecimals),
+    maximumThresholdWei: toBaseUnits(terms.maximumThreshold, fundingAssetDecimals),
     startTime: toUnixSeconds(startTime),
     endTime: toUnixSeconds(endTime),
     exitDeadline: toUnixSeconds(exitDeadline),
-    finalizeGracePeriodSeconds: LAUNCH_POLICY.finalizeGracePeriodHours * 3600,
+    finalizeGracePeriodSeconds: terms.finalizeGracePeriodHours * 3600,
     tokenDecimals,
-    tokenTotalSupplyBaseUnits: toBaseUnits(LAUNCH_POLICY.totalSupply, tokenDecimals),
-    contributorAllocationBps: LAUNCH_POLICY.contributorAllocationPercent * 100,
-    liquidityAllocationBps: LAUNCH_POLICY.liquidityAllocationPercent * 100,
+    tokenTotalSupplyBaseUnits: toBaseUnits(terms.totalSupply, tokenDecimals),
+    contributorAllocationBps: terms.contributorAllocationPercent * 100,
+    liquidityAllocationBps: terms.liquidityAllocationPercent * 100,
+  };
+}
+
+/**
+ * `testnet` marks a proposal whose round runs on a test network with
+ * faucet-sized amounts, so nobody mistakes it for a real launch.
+ */
+function manifestStatus({ dryRun, policy }) {
+  if (dryRun) {
+    return "dry-run";
+  }
+  return policy === "testnet" ? "testnet" : "draft";
+}
+
+/**
+ * Commits to the image and to the exact prompt that produced it. The prompt is
+ * published so anyone can see what the picture was asked to show, and the
+ * hash means the image cannot be swapped after funding opens.
+ */
+function buildVisual(visual) {
+  if (!visual?.image) {
+    throw new Error("A launch manifest needs a generated image");
+  }
+
+  return {
+    prompt: visual.prompt,
+    revisedPrompt: visual.revisedPrompt ?? null,
+    generator: visual.generator,
+    image: {
+      uri: `../${PUBLICATION_LAYOUT.images}/${visual.image.fileName}`,
+      sha256: visual.image.sha256,
+      mediaType: visual.image.mediaType,
+      byteLength: visual.image.byteLength,
+    },
   };
 }
 
@@ -190,6 +267,7 @@ export function validateLaunchManifest(manifest, signals) {
 
   validateSelectionRecord(manifest.selection, signals);
   validateEvidence(manifest, signals);
+  validateVisual(manifest.visual);
 
   const token = manifest.token ?? {};
   const allocationTotal =
@@ -253,15 +331,16 @@ function validateChainTerms(manifest) {
     throw new Error("manifest.chainTerms must publish the enforceable launch terms");
   }
 
+  const { fundingAssetDecimals, tokenDecimals } = SHARED_POLICY;
   const expected = {
-    walletCapWei: toBaseUnits(funding.walletCap, LAUNCH_POLICY.fundingAssetDecimals),
-    minimumThresholdWei: toBaseUnits(funding.minimumThreshold, LAUNCH_POLICY.fundingAssetDecimals),
-    maximumThresholdWei: toBaseUnits(funding.maximumThreshold, LAUNCH_POLICY.fundingAssetDecimals),
+    walletCapWei: toBaseUnits(funding.walletCap, fundingAssetDecimals),
+    minimumThresholdWei: toBaseUnits(funding.minimumThreshold, fundingAssetDecimals),
+    maximumThresholdWei: toBaseUnits(funding.maximumThreshold, fundingAssetDecimals),
     startTime: toUnixSeconds(funding.startTime),
     endTime: toUnixSeconds(funding.endTime),
     exitDeadline: toUnixSeconds(funding.exitDeadline),
-    tokenDecimals: LAUNCH_POLICY.tokenDecimals,
-    tokenTotalSupplyBaseUnits: toBaseUnits(token.totalSupply, LAUNCH_POLICY.tokenDecimals),
+    tokenDecimals,
+    tokenTotalSupplyBaseUnits: toBaseUnits(token.totalSupply, tokenDecimals),
     contributorAllocationBps: token.contributorAllocationPercent * 100,
     liquidityAllocationBps: token.liquidityAllocationPercent * 100,
   };
@@ -334,6 +413,39 @@ function validateSelectionRecord(selection, signals, { requireSelection = true }
     if (candidate.selected !== isSelected) {
       throw new Error(`selection.candidates disagrees with selectedSignalIds for ${candidate.id}`);
     }
+  }
+}
+
+function validateVisual(visual) {
+  if (!visual || typeof visual !== "object") {
+    throw new Error("manifest.visual must describe the proposal's image");
+  }
+  requiredString(visual.prompt, "manifest.visual.prompt");
+  requiredString(visual.generator, "manifest.visual.generator");
+  if (visual.revisedPrompt !== null && typeof visual.revisedPrompt !== "string") {
+    throw new Error("manifest.visual.revisedPrompt must be a string or null");
+  }
+
+  const image = visual.image ?? {};
+  const format = IMAGE_FORMATS[image.mediaType];
+  if (!format) {
+    throw new Error(`manifest.visual.image.mediaType is not supported: ${image.mediaType}`);
+  }
+  if (!/^0x[0-9a-f]{64}$/.test(image.sha256 ?? "")) {
+    throw new Error("manifest.visual.image.sha256 must be a 32-byte hex digest");
+  }
+  // The location is derived from the content, so the URI cannot point at a
+  // different file from the one the digest describes.
+  const expectedUri = `../${PUBLICATION_LAYOUT.images}/${image.sha256.slice(2)}.${format.extension}`;
+  if (image.uri !== expectedUri) {
+    throw new Error(`manifest.visual.image.uri must be ${expectedUri}`);
+  }
+  if (
+    !Number.isSafeInteger(image.byteLength) ||
+    image.byteLength <= 0 ||
+    image.byteLength > MAX_IMAGE_BYTES
+  ) {
+    throw new Error("manifest.visual.image.byteLength is out of range");
   }
 }
 

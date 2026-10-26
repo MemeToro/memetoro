@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.3.0",
+  "schemaVersion": "0.4.0",
   "kind": "memetoro.launch-manifest",
   "status": "dry-run",
   "concept": {
@@ -8,6 +8,17 @@
     "summary": "Wholesome meme around International Cat Day celebrations, remixing cute cat photos, videos, and adoption vibes into light shareable content.",
     "marketReasoning": "Signal x-3 shows sustained high-engagement cat image and video sharing for the annual observance, with clear remixable hooks like portraits, fun facts, and fandom crossovers that stay light and positive.",
     "riskAssessment": "Low harm profile: wholesome animal content, minimal manipulation or tragedy exposure, and only minor sensitivity if unrelated suffering posts appear."
+  },
+  "visual": {
+    "prompt": "An original meme illustration for \"Cat Day\". Wholesome meme around International Cat Day celebrations, remixing cute cat photos, videos, and adoption vibes into light shareable content. Bold, friendly cartoon style with clean shapes, bright colours, and a plain background. Do not include any text, letters, numbers, logos, watermarks, flags, or brand marks. Do not depict real or recognisable people, including politicians and celebrities. No violence, weapons, injury, or distressing imagery.",
+    "revisedPrompt": null,
+    "generator": "fixture",
+    "image": {
+      "uri": "../images/634987ccf8128579674b6277f5ed3022e2bb9aa18c79c97f13044cb5a133569c.jpg",
+      "sha256": "0x634987ccf8128579674b6277f5ed3022e2bb9aa18c79c97f13044cb5a133569c",
+      "mediaType": "image/jpeg",
+      "byteLength": 272606
+    }
   },
   "evidence": [
     {
@@ -307,6 +318,6 @@
   "commitment": {
     "algorithm": "sha256",
     "canonicalization": "memetoro-canonical-json-1",
-    "hash": "0xa315e10a20ea42e5fb879697bba4591d883bb00553fbaaa0e2f2983d924db479"
+    "hash": "0x127db600e2070194d1a21fc0de82ad86c01c4f615ceba616e9871ca053060c7d"
   }
 }

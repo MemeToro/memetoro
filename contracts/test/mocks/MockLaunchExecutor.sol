@@ -15,6 +15,10 @@ contract MockLaunchExecutor is ILaunchExecutor {
     }
 
     Behaviour public behaviour = Behaviour.Honest;
+    /// @notice Only the deployer can change behaviour, because demo rounds on a
+    ///         public testnet share one executor and anyone else could break
+    ///         every launch at once.
+    address public immutable owner = msg.sender;
 
     bytes32 public lastManifestHash;
     uint256 public lastValue;
@@ -22,6 +26,7 @@ contract MockLaunchExecutor is ILaunchExecutor {
     MockERC20 public token;
 
     function setBehaviour(Behaviour value) external {
+        require(msg.sender == owner, "only owner");
         behaviour = value;
     }
 

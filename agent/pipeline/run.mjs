@@ -4,13 +4,11 @@ import { loadEnvFile } from "node:process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { generateConcept, validateConcept } from "./lib/concept.mjs";
-import {
-  buildLaunchManifest,
-  buildNoProposalRecord,
-  validateLaunchManifest,
-  validateNoProposalRecord,
-} from "./lib/manifest.mjs";
+import { generateConcept } from "./lib/concept.mjs";
+import { DEFAULT_IMAGE_MODEL, generateImage } from "./lib/image.mjs";
+import { LAUNCH_POLICIES } from "./lib/manifest.mjs";
+import { produceDocument } from "./lib/produce.mjs";
+import { publicationFiles, writePublication } from "./lib/publish.mjs";
 import { renderMarkdown } from "./lib/render.mjs";
 import { normalizeSignals } from "./lib/signals.mjs";
 
@@ -28,6 +26,12 @@ const DRY_RUN_SCENARIOS = {
     concept: "decline-response.json",
   },
 };
+
+/** The frozen image the propose scenario's concept produced in a live run. */
+async function loadFixtureImage() {
+  const metadata = await readJson(resolve(FIXTURE_DIRECTORY, "image-response.json"));
+  return { ...metadata, bytes: await readFile(resolve(FIXTURE_DIRECTORY, "concept-image.jpg")) };
+}
 
 await main().catch((error) => {
   console.error(`Pipeline failed: ${error.message}`);
@@ -73,14 +77,28 @@ async function main() {
     );
   }
 
-  const concept = validateConcept(rawConcept, window.signals);
-  const generatedAt = options.dryRun ? window.generatedAt : new Date().toISOString();
-  const context = { concept, window, generatedAt, dryRun: options.dryRun, generator: model };
+  const { document, image } = await produceDocument({
+    window,
+    rawConcept,
+    generatedAt: options.dryRun ? window.generatedAt : new Date().toISOString(),
+    dryRun: options.dryRun,
+    generator: model,
+    policy: options.policy,
+    createImage: options.dryRun
+      ? () => loadFixtureImage()
+      : (prompt) =>
+          generateImage(prompt, {
+            apiKey: process.env.XAI_API_KEY,
+            model: process.env.XAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL,
+          }),
+  });
 
-  const document =
-    concept.decision === "decline"
-      ? validateNoProposalRecord(buildNoProposalRecord(context), window.signals)
-      : validateLaunchManifest(buildLaunchManifest(context), window.signals);
+  if (options.publishDir) {
+    const files = publicationFiles({ document, image });
+    await writePublication(resolve(process.cwd(), options.publishDir), files);
+    console.log(files.map((file) => file.path).join("\n"));
+    return;
+  }
 
   const output =
     options.format === "markdown" ? renderMarkdown(document) : JSON.stringify(document, null, 2);
@@ -106,6 +124,8 @@ function parseArguments(argumentsList) {
     format: "json",
     saveConceptPath: "",
     outputPath: "",
+    publishDir: "",
+    policy: "standard",
   };
 
   for (let index = 0; index < argumentsList.length; index += 1) {
@@ -126,6 +146,12 @@ function parseArguments(argumentsList) {
       index += 1;
     } else if (argument === "--out") {
       options.outputPath = argumentsList[index + 1] ?? "";
+      index += 1;
+    } else if (argument === "--publish-dir") {
+      options.publishDir = argumentsList[index + 1] ?? "";
+      index += 1;
+    } else if (argument === "--policy") {
+      options.policy = argumentsList[index + 1] ?? "";
       index += 1;
     } else if (argument === "--help" || argument === "-h") {
       options.help = true;
@@ -155,6 +181,12 @@ function parseArguments(argumentsList) {
   if (options.saveConceptPath && options.dryRun) {
     throw new Error("--save-concept only applies to live runs");
   }
+  if (!Object.hasOwn(LAUNCH_POLICIES, options.policy)) {
+    throw new Error(`--policy must be one of: ${Object.keys(LAUNCH_POLICIES).join(", ")}`);
+  }
+  if (options.publishDir && options.outputPath) {
+    throw new Error("--publish-dir cannot be combined with --out");
+  }
 
   return options;
 }
@@ -162,9 +194,10 @@ function parseArguments(argumentsList) {
 function printHelp() {
   console.log(`Usage:
   node run.mjs --dry-run [--scenario propose|decline] [--format json|markdown]
-  node run.mjs --signals <trend-signals.json> [--format json|markdown]
+  node run.mjs --signals <trend-signals.json> [--format json|markdown] [--policy standard|testnet]
   node run.mjs --signals <path> --save-concept <path>
   node run.mjs --dry-run --out <path>
+  node run.mjs --dry-run --publish-dir <directory>
   <collector command> | node run.mjs --signals -`);
 }
 

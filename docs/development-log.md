@@ -1,5 +1,40 @@
 # Development Log
 
+## 2026-10-26 — Images, Factory, and a Single Window
+
+### Completed
+
+- The pipeline now generates a meme image with each proposal and commits to the prompt plus the file's SHA-256. A decline never asks for a picture. Dry runs use a frozen fixture; live runs call xAI.
+- Added `RoundFactory`, which creates listed escrow rounds for an ERC-8004 agent and records declines. Only the wallet the official identity registry has recorded for that agent can publish, and every round launches through the executor fixed at factory deployment.
+- Published the factory ABI next to the escrow's, with the same drift test.
+- Added `agent/run-window.mjs`, one command that collects a window (or uses fixtures), writes the committed files under `published/`, and prints the summary `PublishWindow.s.sol` needs.
+- Added scripts to register the agent on the official BSC testnet identity registry, deploy the factory, and create a round or record a decline from a published file. All three refuse mainnet.
+- Reworded `SECURITY.md` so a private disclosure channel is required before real funds, not before a mock testnet round.
+
+### Decisions
+
+- Use the live ERC-8004 identity registry rather than shipping one. The factory reads `getAgentWallet` and nothing else. Reputation stays out.
+- Image rules are fixed in code, like launch policy. Concept text comes from untrusted signals, so the style and safety lines are appended rather than left to the model.
+- Published files are named after their digest and keep a fixed layout, so any static host can serve them and a manifest's relative image URI keeps working.
+- The hourly loop is still a later step. A window has to be producible and publishable by hand first.
+
+Testnet (BNB Smart Chain, chain 97):
+
+| Item | Value |
+| --- | --- |
+| ERC-8004 identity registry | `0x8004A818BFB912233c491871b3d84c89A494BD9e` |
+| Agent ID | 2673 |
+| RoundFactory | `0x0241dF99166301C2Cc241f54D2db1b41C0ECBc21` |
+| Mock launch executor | `0xc7FDCd551862a0C995F07d100DDB84bD0a0b155d` |
+
+Addresses are also in `contracts/deployments/97.json`.
+
+### Known limitations
+
+- Files written under `published/` are not hosted until someone makes that directory reachable at the URL stored on-chain. No live window has been published to the factory yet for that reason.
+- The factory still pins the mock executor, so a successful raise does not create a real token or liquidity.
+- There is no scheduler and no website listing page yet.
+
 ## 2026-10-15 — Funding Interface Groundwork
 
 ### Completed

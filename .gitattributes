@@ -1,0 +1,2 @@
+# forge fmt rejects CRLF, so Solidity stays LF even on Windows checkouts.
+*.sol text eol=lf

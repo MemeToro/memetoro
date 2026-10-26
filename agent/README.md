@@ -23,7 +23,7 @@ node pipeline/run.mjs --dry-run --format markdown
 node --test pipeline/test/pipeline.test.mjs
 ```
 
-Live concept generation is optional. Hourly scheduling, a dedicated market feed, collision checking, publication, and signing remain future work.
+Live concept generation is optional. A single window, including its image, can be produced with `node agent/run-window.mjs`. Hourly scheduling, a dedicated market feed, and collision checking remain future work.
 
 Every script reads credentials from a single `.env` at the repository root, described by `.env.example`. Keep credentials in that ignored file or a secure runtime secret store; only the placeholder example belongs in Git.
 

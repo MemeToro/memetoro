@@ -6,11 +6,20 @@ import { fileURLToPath } from "node:url";
 import { canonicalize, digest, verifyCommitment } from "../lib/canonical.mjs";
 import { validateConcept } from "../lib/concept.mjs";
 import {
-  buildLaunchManifest,
+  IMAGE_RULES,
+  buildImagePrompt,
+  describeImage,
+  generateImage,
+  imageMatches,
+  readImageResponse,
+} from "../lib/image.mjs";
+import {
   buildNoProposalRecord,
   validateLaunchManifest,
   validateNoProposalRecord,
 } from "../lib/manifest.mjs";
+import { produceDocument } from "../lib/produce.mjs";
+import { publicationFiles } from "../lib/publish.mjs";
 import { renderMarkdown } from "../lib/render.mjs";
 import { normalizeSignals } from "../lib/signals.mjs";
 import { classifyLink, toBaseUnits } from "../lib/util.mjs";
@@ -20,6 +29,11 @@ const GENERATED_AT = "2026-08-10T13:56:04.850Z";
 async function loadFixture(name) {
   const path = fileURLToPath(new URL(`../fixtures/${name}`, import.meta.url));
   return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function loadFixtureImage() {
+  const bytes = await readFile(fileURLToPath(new URL("../fixtures/concept-image.jpg", import.meta.url)));
+  return { ...(await loadFixture("image-response.json")), bytes };
 }
 
 async function loadWindow(name = "trend-signals.json") {
@@ -36,10 +50,19 @@ function buildContext(concept, window) {
   };
 }
 
-async function buildValidManifest() {
+/** Builds the propose scenario exactly as `run.mjs --dry-run` does. */
+async function buildValidManifest(policy = "standard") {
   const window = await loadWindow();
-  const concept = validateConcept(await loadFixture("concept-response.json"), window.signals);
-  return { window, manifest: buildLaunchManifest(buildContext(concept, window)) };
+  const { document, image } = await produceDocument({
+    window,
+    rawConcept: await loadFixture("concept-response.json"),
+    generatedAt: GENERATED_AT,
+    dryRun: true,
+    generator: "test",
+    policy,
+    createImage: () => loadFixtureImage(),
+  });
+  return { window, manifest: document, image };
 }
 
 function signalsWith(evidenceUrl, topic = "Injected topic") {
@@ -346,7 +369,9 @@ test("markdown rendering is deterministic and derived only from the manifest", a
 
   assert.equal(first, second);
   assert.match(first, /# Cat Day \(CATDAY\)/);
-  assert.match(first, /not implemented, audited, or deployed/);
+  assert.match(first, /unaudited draft that runs only on test networks/);
+  assert.ok(first.includes(`![Cat Day](${manifest.visual.image.uri})`));
+  assert.ok(first.includes(manifest.visual.prompt));
   assert.match(first, /no strength score is published/);
   assert.ok(first.includes(manifest.evidence[0].url));
   assert.ok(first.includes("Israel rejects"), "rejected candidates must stay visible");
@@ -500,6 +525,174 @@ test("amounts convert to base units without floating point", () => {
   assert.throws(() => toBaseUnits("0.0000000000000000001", 18), /decimal places/);
   assert.throws(() => toBaseUnits("-1", 18), /non-negative/);
   assert.throws(() => toBaseUnits("1e18", 18), /non-negative/);
+});
+
+test("the image prompt names the concept and ends with the fixed rules", async () => {
+  const concept = await loadFixture("concept-response.json");
+  const prompt = buildImagePrompt(concept);
+
+  assert.ok(prompt.startsWith('An original meme illustration for "Cat Day".'));
+  assert.ok(prompt.includes(concept.summary));
+  assert.ok(prompt.endsWith(IMAGE_RULES.join(" ")), "rules must come after model-written text");
+  assert.match(prompt, /Do not depict real or recognisable people/);
+});
+
+test("a manifest commits to its image and the prompt that produced it", async () => {
+  const { manifest, image } = await buildValidManifest();
+  const { visual } = manifest;
+
+  assert.equal(visual.prompt, buildImagePrompt(await loadFixture("concept-response.json")));
+  assert.equal(visual.generator, "fixture");
+  assert.equal(visual.image.mediaType, "image/jpeg");
+  assert.equal(visual.image.uri, `../images/${visual.image.sha256.slice(2)}.jpg`);
+  assert.ok(imageMatches(visual.image, image.bytes));
+  assert.equal(imageMatches(visual.image, Buffer.concat([image.bytes, Buffer.from([0])])), false);
+});
+
+test("image descriptions are derived from the bytes and refuse mislabelled files", async () => {
+  const { bytes } = await loadFixtureImage();
+  const described = describeImage(bytes, "image/jpeg");
+
+  assert.match(described.fileName, /^[0-9a-f]{64}\.jpg$/);
+  assert.equal(described.sha256, `0x${described.fileName.slice(0, 64)}`);
+  assert.equal(described.byteLength, bytes.length);
+
+  assert.throws(() => describeImage(bytes, "image/png"), /not a valid image\/png/);
+  assert.throws(() => describeImage(bytes, "image/gif"), /Unsupported image media type/);
+  assert.throws(() => describeImage(Buffer.alloc(0), "image/jpeg"), /empty/);
+  assert.throws(() => describeImage(Buffer.from("<svg/>"), "image/jpeg"), /not a valid image\/jpeg/);
+});
+
+test("image responses flagged by moderation or missing data are rejected", async () => {
+  const { bytes } = await loadFixtureImage();
+  const b64 = bytes.toString("base64");
+
+  assert.throws(() => readImageResponse({ data: [] }, "m"), /no image data/);
+  assert.throws(
+    () => readImageResponse({ data: [{ b64_json: b64, respect_moderation: false }] }, "m"),
+    /moderation/,
+  );
+
+  const sniffed = readImageResponse({ data: [{ b64_json: b64 }] }, "m");
+  assert.equal(sniffed.mediaType, "image/jpeg", "a missing media type is read from the bytes");
+  assert.equal(sniffed.revisedPrompt, null);
+});
+
+test("image generation asks for base64 output and returns the bytes", async () => {
+  const { bytes } = await loadFixtureImage();
+  let request;
+  const fetchImpl = async (url, options) => {
+    request = { url, body: JSON.parse(options.body) };
+    return new Response(
+      JSON.stringify({ data: [{ b64_json: bytes.toString("base64"), mime_type: "image/jpeg" }] }),
+      { status: 200 },
+    );
+  };
+
+  const generated = await generateImage("a prompt", { apiKey: "test-key", model: "test-model", fetchImpl });
+
+  assert.equal(request.url, "https://api.x.ai/v1/images/generations");
+  assert.equal(request.body.response_format, "b64_json");
+  assert.equal(request.body.model, "test-model");
+  assert.equal(request.body.prompt, "a prompt");
+  assert.ok(generated.bytes.equals(bytes));
+  assert.equal(generated.model, "test-model");
+});
+
+test("manifest validation rejects an image the manifest cannot vouch for", async () => {
+  const { window, manifest } = await buildValidManifest();
+
+  for (const [edit, pattern] of [
+    [(doc) => delete doc.visual, /manifest\.visual/],
+    [(doc) => (doc.visual.image.uri = "https://attacker.example/other.jpg"), /uri must be/],
+    [(doc) => (doc.visual.image.sha256 = "0x1234"), /sha256/],
+    [(doc) => (doc.visual.image.mediaType = "image/svg+xml"), /not supported/],
+    [(doc) => (doc.visual.image.byteLength = 0), /byteLength/],
+    [(doc) => (doc.visual.prompt = ""), /visual\.prompt/],
+  ]) {
+    const tampered = structuredClone(manifest);
+    edit(tampered);
+    assert.throws(() => validateLaunchManifest(tampered, window.signals), pattern);
+  }
+
+  const swapped = structuredClone(manifest);
+  swapped.visual.image.sha256 = `0x${"ab".repeat(32)}`;
+  swapped.visual.image.uri = `../images/${"ab".repeat(32)}.jpg`;
+  assert.equal(verifyCommitment(swapped), false, "a swapped image breaks the commitment");
+});
+
+test("a decline never asks for an image", async () => {
+  const window = await loadWindow("sensitive-only-signals.json");
+  const { document, image } = await produceDocument({
+    window,
+    rawConcept: await loadFixture("decline-response.json"),
+    generatedAt: GENERATED_AT,
+    dryRun: true,
+    generator: "test",
+    policy: "testnet",
+    createImage: () => {
+      throw new Error("a decline must not generate an image");
+    },
+  });
+
+  assert.equal(document.kind, "memetoro.no-proposal");
+  assert.equal(image, null);
+});
+
+test("the testnet policy uses faucet-sized amounts and says so", async () => {
+  const { window } = await buildValidManifest();
+  const { document } = await produceDocument({
+    window,
+    rawConcept: await loadFixture("concept-response.json"),
+    generatedAt: GENERATED_AT,
+    dryRun: false,
+    generator: "test",
+    policy: "testnet",
+    createImage: async () => ({ ...(await loadFixtureImage()), model: "test-image-model" }),
+  });
+
+  assert.equal(document.status, "testnet");
+  assert.equal(document.funding.walletCap, "0.01");
+  assert.equal(document.chainTerms.walletCapWei, "10000000000000000");
+  assert.equal(document.chainTerms.minimumThresholdWei, "20000000000000000");
+  assert.equal(document.chainTerms.maximumThresholdWei, "50000000000000000");
+  assert.equal(document.token.insiderAllocationPercent, 0);
+  assert.equal(document.visual.generator, "test-image-model");
+  validateLaunchManifest(document, window.signals);
+});
+
+test("publication lays out files under their own digests", async () => {
+  const { manifest, image } = await buildValidManifest();
+  const files = publicationFiles({ document: manifest, image });
+
+  assert.deepEqual(
+    files.map((file) => file.path),
+    [`manifests/${manifest.commitment.hash.slice(2)}.json`, `images/${image.fileName}`],
+  );
+  assert.deepEqual(JSON.parse(files[0].contents.toString("utf8")), manifest);
+  assert.ok(files[1].contents.equals(image.bytes));
+
+  // The manifest's relative image URI resolves to the published image file.
+  const manifestUrl = new URL(`https://host.example/root/${files[0].path}`);
+  assert.equal(
+    new URL(manifest.visual.image.uri, manifestUrl).href,
+    `https://host.example/root/${files[1].path}`,
+  );
+
+  const wrongBytes = { ...image, bytes: Buffer.from(image.bytes).fill(0, 100, 200) };
+  assert.throws(() => publicationFiles({ document: manifest, image: wrongBytes }), /do not match/);
+});
+
+test("a decline publishes a single record and no image", async () => {
+  const window = await loadWindow("sensitive-only-signals.json");
+  const concept = validateConcept(await loadFixture("decline-response.json"), window.signals);
+  const record = buildNoProposalRecord(buildContext(concept, window));
+  const files = publicationFiles({ document: record, image: null });
+
+  assert.deepEqual(
+    files.map((file) => file.path),
+    [`no-proposals/${record.commitment.hash.slice(2)}.json`],
+  );
 });
 
 test("the published manifest fixture matches what the pipeline produces", async () => {

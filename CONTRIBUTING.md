@@ -18,7 +18,9 @@ Keep connectors under `agent/data-sources/`, document their provider and runtime
 
 Contracts live under `contracts/` and use [Foundry](https://getfoundry.sh). Fetch `forge-std` with `git submodule update --init --recursive`, then run `forge build`, `forge test`, `forge fmt --check`, and `forge lint` from that directory before opening a pull request.
 
-The website and other interfaces are built against `contracts/abi/FairLaunchEscrow.json`. If a change alters the escrow's functions, events, or errors, run `node script/export-abi.mjs` from `contracts/` after `forge build`; the suite fails until the published ABI matches the contract.
+The website and other interfaces are built against the files in `contracts/abi/`. If a change alters a published contract's functions, events, or errors, run `node script/export-abi.mjs` from `contracts/` after `forge build`; the suite fails until those files match.
+
+Agent tests stay offline: `node --test agent/pipeline/test/pipeline.test.mjs agent/run-window.test.mjs`. Live collection and image generation are optional and must not be required by a pull request.
 
 Anything affecting how funds move needs tests, not just a passing build. Prefer properties over examples: add or extend an invariant when a change touches accounting, and add the negative case when a change adds a restriction. If you change the invariant fixture's thresholds, actor set, or time steps, keep the reachability tests passing — they exist because invariants over an escrow that never funds, launches, or refunds pass while proving nothing.
 

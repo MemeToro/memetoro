@@ -10,15 +10,22 @@ MemeToro uses public smart contracts to apply each proposal's published launch r
 | Path | Purpose |
 | --- | --- |
 | `src/FairLaunchEscrow.sol` | Funding escrow for one launch round |
+| `src/RoundFactory.sol` | Creates listed rounds for an ERC-8004 agent and records declines |
 | `src/interfaces/ILaunchExecutor.sol` | Boundary for token creation and liquidity |
 | `src/interfaces/IERC20Minimal.sol` | The ERC-20 surface needed to pay claims |
+| `src/interfaces/IAgentIdentityRegistry.sol` | The `getAgentWallet` slice of ERC-8004 the factory reads |
 | `abi/FairLaunchEscrow.json` | The escrow's ABI, published for interfaces such as the website |
-| `script/export-abi.mjs` | Regenerates the published ABI from the latest build |
+| `abi/RoundFactory.json` | The factory's ABI |
+| `script/export-abi.mjs` | Regenerates the published ABIs from the latest build |
+| `script/DeployFactory.s.sol` | Deploys the factory and the mock executor it pins |
+| `script/RegisterAgent.s.sol` | Registers the agent on the official ERC-8004 testnet registry |
+| `script/PublishWindow.s.sol` | Creates a round, or records a decline, from a published file |
 | `script/DeployDemoRound.s.sol` | Deploys a throwaway round for testing an interface |
 | `test/FairLaunchEscrow.t.sol` | Unit and fuzz tests |
 | `test/FairLaunchEscrow.invariants.t.sol` | Invariants over randomized action sequences |
+| `test/RoundFactory.t.sol` | Factory identity, listing, and duplicate checks |
 | `test/ManifestCommitment.t.sol` | Deploys a round from the manifest the agent publishes |
-| `test/PublishedAbi.t.sol` | Fails when the published ABI no longer matches the contract |
+| `test/PublishedAbi.t.sol` | Fails when a published ABI no longer matches its contract |
 
 ## FairLaunchEscrow
 
@@ -68,7 +75,7 @@ cast send <round> "refund()" --rpc-url <rpc> --account <keystore>
 
 ## Published ABI
 
-Interfaces, the website among them, are built against `abi/FairLaunchEscrow.json` rather than a local build. After changing the escrow's functions, events, or errors, regenerate it:
+Interfaces, the website among them, are built against the files in `abi/` rather than a local build. After changing a published contract's functions, events, or errors, regenerate them:
 
 ```sh
 forge build
@@ -126,6 +133,34 @@ cast send <executor> "setBehaviour(uint8)" 1 --rpc-url http://127.0.0.1:8545 \
   --unlocked --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 ```
 
+## Round factory
+
+`RoundFactory` is how an agent opens a listed round. It deploys an ordinary `FairLaunchEscrow`, stores the public URI of the published manifest, and keeps an enumerable list so a page can find rounds without an indexer. Declines go in a second list, so an hour where the agent published nothing is visible too.
+
+Only the wallet ERC-8004 has recorded for that agent can create rounds or record declines. Anyone can register an agent and use the factory; the check identifies who proposed a round rather than restricting who may. The launch executor is fixed when the factory is deployed, so a leaked agent key can open unwanted rounds but cannot send a raise anywhere else.
+
+On BNB Smart Chain testnet the official identity registry is `0x8004A818BFB912233c491871b3d84c89A494BD9e`. Register once, deploy the factory, then publish windows:
+
+```sh
+# From the repository root, after adding AGENT_URI to the environment.
+# published/agent.json is the registration file; host it and pass its URL.
+forge script contracts/script/RegisterAgent.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 \
+  --broadcast --slow --legacy --with-gas-price 100000000 --private-key <key>
+
+forge script contracts/script/DeployFactory.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 \
+  --broadcast --slow --legacy --with-gas-price 100000000 --private-key <key>
+
+node agent/run-window.mjs --dry-run --fresh-clock --policy testnet \
+  --public-base-url https://raw.githubusercontent.com/MemeToro/memetoro/main/published
+# Host the files at that URL, then:
+forge script contracts/script/PublishWindow.s.sol --rpc-url https://data-seed-prebsc-1-s1.bnbchain.org:8545 \
+  --broadcast --slow --legacy --with-gas-price 100000000 --private-key <key>
+```
+
+`PublishWindow` reads `FACTORY`, `AGENT_ID`, `DOCUMENT_PATH`, and `PUBLIC_URI` from the environment. `DOCUMENT_PATH` is relative to `contracts/`, so a file at `published/manifests/<hash>.json` is `../published/manifests/<hash>.json`.
+
+The testnet deployment is recorded in [`deployments/97.json`](./deployments/97.json): factory `0x0241dF99166301C2Cc241f54D2db1b41C0ECBc21`, agent 2673. Source is verified on BscScan.
+
 ## What is stubbed
 
 Token creation and liquidity provision sit behind `ILaunchExecutor`. The escrow sends the entire raise as value and requires the contributor allocation back in tokens; it knows nothing about token mechanics, which exchange receives liquidity, or how LP tokens are handled. Keeping that boundary means the escrow's fairness properties can be tested without a DEX, and it is the next piece of real work.
@@ -164,8 +199,6 @@ Recomputing the digest on-chain is deliberately not attempted. The escrow stores
 
 ## Deliberately deferred
 
-- The real launch executor: token deployment, liquidity provision, and LP handling.
-- A factory for deploying real rounds, and the deployment scripts that go with it. The demo script only exists to test interfaces against a mock executor.
-- Testnet deployment and verification on BNB Smart Chain.
-- ERC-8004 agent identity and reputation.
+- The real launch executor: token deployment, liquidity provision, and LP handling. The factory still pins every round to the mock executor.
+- ERC-8004 reputation and validation. Identity is the only slice in use: the factory asks the official registry which wallet acts for an agent.
 - Independent security review, which must precede any production use.

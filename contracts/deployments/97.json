@@ -1,0 +1,9 @@
+{
+  "chainId": 97,
+  "network": "bsc-testnet",
+  "identityRegistry": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+  "agentId": 2673,
+  "agentWallet": "0xFbA65eE5ab6ef58A2b42336C3F0c9AA9cEf46692",
+  "factory": "0x0241dF99166301C2Cc241f54D2db1b41C0ECBc21",
+  "launchExecutor": "0xc7FDCd551862a0C995F07d100DDB84bD0a0b155d"
+}

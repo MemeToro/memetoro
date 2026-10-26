@@ -10,6 +10,7 @@ A launch manifest contains:
 
 - Token name and symbol.
 - Meme concept and market reasoning.
+- A generated image, the prompt that produced it, and a SHA-256 of the file.
 - Risk assessment.
 - Cited evidence, each entry carrying its URL, whether the link is a permalink or a publisher section front, and any recorded title, publication date, account, or description.
 - Countable source facts: how many links, how many distinct domains, how many permalinks against section fronts, how many links carry a date, and the date range they cover.

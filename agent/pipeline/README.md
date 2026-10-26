@@ -25,6 +25,9 @@ The model selects and describes a concept. It does not choose funding policy, cu
 | `lib/concept.mjs` | Concept schema, prompt, generation, validation |
 | `lib/manifest.mjs` | Launch policy, manifest and no-proposal builders, validation |
 | `lib/canonical.mjs` | Canonical serialization and the published commitment |
+| `lib/image.mjs` | Image prompt, generation, and the hash a manifest commits to |
+| `lib/produce.mjs` | Turns a concept into a committed document plus image bytes |
+| `lib/publish.mjs` | Lays out published files under their own digests |
 | `lib/render.mjs` | Deterministic manifest-to-markdown rendering |
 | `test/` | Fixture-based tests, including negative cases |
 
@@ -91,11 +94,9 @@ The permalink-against-section-front split uses a documented heuristic in `lib/ut
 
 ## Deliberately deferred
 
-- Hourly scheduling and retries.
+- Hourly scheduling and retries. A single window can be produced with `node agent/run-window.mjs`.
 - A dedicated market-data connector.
 - Symbol and name collision checking against existing tokens.
 - Evidence liveness checking.
-- Visual identity fields and asset generation.
-- Persistence, proposal publication, and manifest signing.
 - A formal manifest JSON Schema.
-- Contract or wallet interaction.
+- Automatic hosting of published files. The files are written under `published/`; someone still has to make that directory reachable at the URL stored on-chain.

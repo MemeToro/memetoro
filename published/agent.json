@@ -1,0 +1,12 @@
+{
+  "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+  "name": "MemeToro",
+  "description": "Open-source AI meme launch agent on BNB Smart Chain. This registration is for the testnet agent. Launch contracts are an unaudited draft, and the launch step is a mock that must not be used with real funds.",
+  "endpoints": [
+    {
+      "name": "github",
+      "endpoint": "https://github.com/MemeToro/memetoro"
+    }
+  ],
+  "supportedTrust": []
+}
