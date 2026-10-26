@@ -17,9 +17,6 @@ coverage/
 agent/data-sources/**/output/
 agent/pipeline/output/
 published/latest.json
-published/manifests/
-published/images/
-published/no-proposals/
 broadcast/
 
 # Editors
